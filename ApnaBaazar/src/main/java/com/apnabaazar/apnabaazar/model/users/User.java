@@ -1,6 +1,8 @@
 package com.apnabaazar.apnabaazar.model.users;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -21,10 +23,10 @@ import java.util.Set;
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -46,7 +48,7 @@ public class User {
 
     private boolean isDeleted = false;
 
-    private boolean isActive = true;
+    private boolean isActive = false;
 
     @CreatedDate
     private LocalDateTime createdAt;
