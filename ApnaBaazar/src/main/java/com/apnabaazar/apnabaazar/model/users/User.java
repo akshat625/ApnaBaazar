@@ -65,6 +65,11 @@ public class User {
     //Account locked
     private boolean isLocked = false;
 
+    private String verificationCode;
+
+    private LocalDateTime verificationCodeExpiresAt;
+
+
     private int invalidAttemptCount = 0;
 
     private LocalDateTime passwordUpdateDate;

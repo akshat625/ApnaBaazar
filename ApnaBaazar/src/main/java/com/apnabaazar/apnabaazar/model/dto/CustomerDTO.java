@@ -3,7 +3,7 @@ package com.apnabaazar.apnabaazar.model.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
-public class CustomerDTO {
+public class CustomerDTO extends  UserDTO{
 
     @NotBlank(message = "Contact number is required")
     @Pattern(

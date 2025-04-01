@@ -3,6 +3,12 @@ package com.apnabaazar.apnabaazar.controller;
 import com.apnabaazar.apnabaazar.model.dto.CustomerDTO;
 import com.apnabaazar.apnabaazar.model.dto.LoginDTO;
 import com.apnabaazar.apnabaazar.model.dto.SellerDTO;
+import com.apnabaazar.apnabaazar.model.users.Customer;
+import com.apnabaazar.apnabaazar.model.users.User;
+import com.apnabaazar.apnabaazar.service.CustomerService;
+import com.apnabaazar.apnabaazar.service.SellerService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +16,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public class AuthController {
 
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private SellerService sellerService;
 
     @PostMapping("/register/seller")
     public ResponseEntity<String> registerSeller(@RequestBody SellerDTO sellerDTO) {
@@ -17,8 +28,9 @@ public class AuthController {
     }
 
     @PostMapping("/register/customer")
-    public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) {
-        return ResponseEntity.ok("Customer registered successfully!");
+    public ResponseEntity<Customer> registerCustomer(@RequestBody CustomerDTO customerDTO) {
+        Customer registeredCustomer = customerService.signup(customerDTO);
+        return ResponseEntity.ok(registeredCustomer);
     }
 
     @PostMapping("/login/customer")

@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SellerDTO {
+public class SellerDTO extends UserDTO{
 
     @NotBlank(message = "GSTIN is required")
     @Pattern(
