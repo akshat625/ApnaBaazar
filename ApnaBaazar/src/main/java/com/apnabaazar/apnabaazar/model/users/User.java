@@ -59,8 +59,10 @@ public class User {
     @LastModifiedBy
     private String lastModifiedBy;
 
+    //Account expired
     private boolean isExpired = false;
 
+    //Account locked
     private boolean isLocked = false;
 
     private int invalidAttemptCount = 0;

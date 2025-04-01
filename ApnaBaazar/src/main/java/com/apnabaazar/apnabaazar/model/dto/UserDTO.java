@@ -14,6 +14,8 @@ public class UserDTO {
     @NotBlank(message = "First name is required")
     private String firstName;
 
+    private String middleName;
+
     @NotBlank(message = "Last name is required")
     private String lastName;
 

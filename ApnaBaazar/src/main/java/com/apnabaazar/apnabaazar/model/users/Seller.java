@@ -7,7 +7,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "sellers")
+@Table(name = "sellers",uniqueConstraints = {
+        @UniqueConstraint(columnNames = "gst"),
+        @UniqueConstraint(columnNames = "company_name")
+})
 @Getter
 @Setter
 @NoArgsConstructor
