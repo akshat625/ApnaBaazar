@@ -19,13 +19,13 @@ public class EmailService {
         MimeMessage message = emailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        String verificationLink = "http://localhost:8080/customer/verify/" + token;
+        String verificationLink = "http://localhost:8080/auth/customer/verify/" + token;
         String emailContent = String.format(
                 "<h3>Please verify your email</h3>" +
-                        "<p>Click the link below to verify your email address:</p>" +
-                        "<a href='%s'>%s</a>" +
-                        "<p>Link expires in 15 minutes.</p>",
-                verificationLink, verificationLink
+                        "<p>Click the button below to verify your email address:</p>" +
+                        "<a href='%s' style='display: inline-block; padding: 10px 20px; font-size: 16px; color: #ffffff; background-color: #28a745; text-decoration: none; border-radius: 5px;'>Click to Activate</a>" +
+                        "<p>Link expires in 3 hours.</p>",
+                verificationLink
         );
 
         helper.setTo(to);
@@ -44,13 +44,30 @@ public class EmailService {
                 "<h3>Email Verification Successful</h3>" +
                         "<p>Your email has been successfully verified.</p>"
         );
-
         helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(emailContent, true);
 
         emailSender.send(message);
     }
+
+    @Async
+    public void sendSuccessEmailToSeller(String to, String subject) throws MessagingException {
+        MimeMessage message = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        String emailContent = String.format(
+                "<h3>Account Created</h3>" +
+                        "<p>Your Seller Account has been created. Waiting for approval.</p>"
+        );
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(emailContent, true);
+
+        emailSender.send(message);
+    }
+
+
     @Async
     public void sellerRegistrationEmail(String to, String subject) throws MessagingException {
         MimeMessage message = emailSender.createMimeMessage();

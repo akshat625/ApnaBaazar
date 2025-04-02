@@ -24,9 +24,11 @@ public class UserDTO {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 15, message = "Password must contain 8-15 characters")
-    @Pattern(regexp = "^(?=.[A-Z])(?=.[a-z])(?=.\\d)(?=.[@#$%^&+=]).*$",
-            message = "Password must have at least one uppercase letter, one lowercase letter, one number, and one special character")
+    @Size(min = 8, max = 15, message = "Password must be between 8 and 15 characters long")
+    @Pattern(
+            regexp = "^(?=.[A-Z])(?=.[a-z])(?=.\\d)(?=.[@$!%?&])[A-Za-z\\d@$!%?&]{8,15}$",
+            message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, and 1 special character"
+    )
     private String password;
 
     @NotBlank(message = "Confirm Password is required")

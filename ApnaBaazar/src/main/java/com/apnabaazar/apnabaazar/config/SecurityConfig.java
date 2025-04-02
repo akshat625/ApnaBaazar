@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/seller/**").hasRole("SELLER")
-                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
+                        .requestMatchers("/customer/**").permitAll()
                         .requestMatchers("/address/**").authenticated()
                         .requestMatchers("/actuators/**").authenticated()
                         .requestMatchers("/swagger-ui.html").authenticated()

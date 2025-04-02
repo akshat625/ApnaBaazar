@@ -22,8 +22,6 @@ import java.util.Set;
 @Inheritance(strategy = InheritanceType.JOINED)
 @EntityListeners(AuditingEntityListener.class)
 public class User {
-
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
@@ -34,7 +32,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private Set<Role> roles = new HashSet<>();
+    private Set<Role> roles;
 
     private String email;
 
@@ -64,10 +62,6 @@ public class User {
 
     //Account locked
     private boolean isLocked = false;
-
-    private String verificationCode;
-
-    private LocalDateTime verificationCodeExpiresAt;
 
 
     private int invalidAttemptCount = 0;
