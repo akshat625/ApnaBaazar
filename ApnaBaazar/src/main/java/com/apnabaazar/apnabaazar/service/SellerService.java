@@ -1,6 +1,10 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.exceptions.EmailAlreadyInUseException;
+import com.apnabaazar.apnabaazar.exceptions.GstAlreadyInUseException;
+import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.model.dto.SellerDTO;
+import com.apnabaazar.apnabaazar.exceptions.DuplicateResourceException;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
@@ -24,12 +28,19 @@ public class SellerService {
     }
 
     public String sellerSignup(SellerDTO input) throws MessagingException {
-        if (!input.getPassword().equals(input.getConfirmPassword())) {
-            throw new IllegalArgumentException("Passwords don't match");
+        if(!input.getPassword().equals(input.getConfirmPassword())) {
+            throw new PasswordMismatchException("Passwords don't match");
         }
-        if (userRepository.findByEmail(input.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already in use");
+        if(userRepository.findByEmail(input.getEmail()).isPresent()) {
+            throw new EmailAlreadyInUseException("Email already in use");
         }
+        if(userRepository.existsByGst(input.getGst())) {
+            throw new GstAlreadyInUseException("Gst already in use");
+        }
+        if(userRepository.existsByCompanyName(input.getCompanyName())) {
+            throw new DuplicateResourceException("Company already exist");
+        }
+
         Seller seller = new Seller();
         seller.setFirstName(input.getFirstName());
         seller.setLastName(input.getLastName());

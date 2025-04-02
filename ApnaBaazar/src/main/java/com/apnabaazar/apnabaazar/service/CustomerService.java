@@ -1,5 +1,9 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.exceptions.EmailAlreadyInUseException;
+import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
+import com.apnabaazar.apnabaazar.exceptions.UserNotFoundException;
+import com.apnabaazar.apnabaazar.exceptions.VerificationTokenNotFoundException;
 import com.apnabaazar.apnabaazar.model.dto.CustomerDTO;
 import com.apnabaazar.apnabaazar.model.token.UserVerificationToken;
 import com.apnabaazar.apnabaazar.model.users.Customer;
@@ -36,10 +40,10 @@ public class CustomerService {
 
     public String customerSignup(CustomerDTO input) throws MessagingException {
         if (!input.getPassword().equals(input.getConfirmPassword())) {
-            throw new IllegalArgumentException("Passwords don't match");
+            throw new PasswordMismatchException("Passwords don't match");
         }
         if (userRepository.findByEmail(input.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("Email already in use");
+            throw new EmailAlreadyInUseException("Email already in use");
         }
         Customer customer = new Customer();
         customer.setEmail(input.getEmail());
@@ -70,7 +74,7 @@ public class CustomerService {
         String emailId = jwtService.extractUsername(token);
 
         UserVerificationToken verificationToken = userVerificationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Token not found or already used."));
+                .orElseThrow(() -> new VerificationTokenNotFoundException("Token not found or already used."));
 
         if (jwtService.isTokenExpired(token)) {
             userVerificationTokenRepository.delete(verificationToken);
@@ -94,9 +98,14 @@ public class CustomerService {
         return "Email verified successfully";
     }
 
+
+
+
+
+
     public String resendVerificationEmail(String emailId) throws MessagingException {
         User user = userRepository.findByEmail(emailId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         if (user.isActive()) {
             return "User is already active";
         }
