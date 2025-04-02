@@ -38,7 +38,7 @@ public class SellerService {
         seller.setCompanyName(input.getCompanyName());
         seller.setGst(input.getGst());
         seller.setCompanyContact(input.getCompanyContact());
-        if(input.getMiddleName() != null){
+        if (input.getMiddleName() != null && !input.getMiddleName().isEmpty()) {
             seller.setMiddleName(input.getMiddleName());
         }
 

@@ -19,7 +19,7 @@ public class EmailService {
         MimeMessage message = emailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        String verificationLink = "http://localhost:8080/auth/customer/verify/" + token;
+        String verificationLink = "http://localhost:8080/auth/verify/" + token;
         String emailContent = String.format(
                 "<h3>Please verify your email</h3>" +
                         "<p>Click the button below to verify your email address:</p>" +
@@ -68,20 +68,5 @@ public class EmailService {
     }
 
 
-    @Async
-    public void sellerRegistrationEmail(String to, String subject) throws MessagingException {
-        MimeMessage message = emailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        String emailContent = String.format(
-                "<h3>Seller Registration Successful</h3>" +
-                        "<p>Your registration as a seller has been successfully completed.</p>"
-        );
-
-        helper.setTo(to);
-        helper.setSubject(subject);
-        helper.setText(emailContent, true);
-
-        emailSender.send(message);
-    }
 }
