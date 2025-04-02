@@ -1,6 +1,7 @@
 package com.apnabaazar.apnabaazar.service;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -25,20 +26,21 @@ public class JwtService {
     /**
      * Generates a JWT token with the given username.
      */
-    public String generateToken(String username) {
+    public String generateToken(String username, String tokenType) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, username);
+        return createToken(claims, username, tokenType);
     }
 
     /**
      * Creates a signed JWT token.
      */
-    private String createToken(Map<String, Object> claims, String subject) {
+    private String createToken(Map<String, Object> claims, String subject, String tokenType) {
         return Jwts.builder()
-                .claims(claims)
-                .subject(subject)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expirationTime))
+
+                .claim("type", tokenType)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -55,11 +57,11 @@ public class JwtService {
      * Extracts all claims from the token.
      */
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
-                .getPayload();
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     /**
@@ -87,9 +89,23 @@ public class JwtService {
     /**
      * Validates if the token is valid.
      */
-    public Boolean validateToken(String token) {
-        return !isTokenExpired(token);
+    public Boolean validateToken(String token,String tokenType, String username) {
+        try {
+            Claims claims = extractAllClaims(token);
+            String email = extractUsername(token);
+            return (email.equals(username) && !isTokenExpired(token) && tokenType.equals(claims.get("type")));
+        }catch(ExpiredJwtException e){
+            throw new RuntimeException("Expired JWT Token");
+        }catch(Exception e){
+            throw new RuntimeException("Invalid JWT Token");
+        }
     }
 
+
+    public void invalidateToken(String token) {
+        Claims claims = extractAllClaims(token);
+        claims.setExpiration(new Date(System.currentTimeMillis() - 1000));
+
+    }
 }
 
