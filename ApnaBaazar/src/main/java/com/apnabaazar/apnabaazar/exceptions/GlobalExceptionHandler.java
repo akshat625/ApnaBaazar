@@ -14,27 +14,36 @@ import java.time.LocalDateTime;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(PasswordMismatchException.class)
-    public ResponseEntity<ErrorResponse> handlePasswordMismatch(PasswordMismatchException ex) {
-        return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handlePasswordMismatch(PasswordMismatchException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(EmailAlreadyInUseException.class)
-    public ResponseEntity<ErrorResponse> handleEmailAlreadyInUse(EmailAlreadyInUseException ex) {
-        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyInUse(EmailAlreadyInUseException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateResourceException(DuplicateResourceException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(GstAlreadyInUseException.class)
-    public ResponseEntity<ErrorResponse> handleGstAlreadyInUse(GstAlreadyInUseException ex) {
-        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT);
+    public ResponseEntity<ErrorResponse> handleGstAlreadyInUse(GstAlreadyInUseException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(VerificationTokenNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleVerificationTokenNotFoundException(VerificationTokenNotFoundException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                LocalDateTime.now(),
-                status.value(),
-                status.getReasonPhrase(),
-                message
-        );
+        ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(),status.value(),status.getReasonPhrase(),message);
         return new ResponseEntity<>(errorResponse, status);
     }
 }
