@@ -46,8 +46,35 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(PasswordExpiredException.class)
+    public ResponseEntity<ErrorResponse> handlePasswordExpiredException(PasswordExpiredException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyInUseException(EmailAlreadyInUseException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AccountNotActivatedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountNotActivatedException(AccountNotActivatedException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLockedException(AccountLockedException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status) {
         ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(),status.value(),status.getReasonPhrase(),message);
         return new ResponseEntity<>(errorResponse, status);
     }
+
+
 }
