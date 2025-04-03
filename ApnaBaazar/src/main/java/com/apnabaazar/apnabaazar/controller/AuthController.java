@@ -8,8 +8,11 @@ import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import javax.management.relation.RoleNotFoundException;
 
 @RestController
 @RequestMapping("/auth")
@@ -28,8 +31,9 @@ public class AuthController {
     }
 
     @PostMapping("/register/customer")
-    public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) throws MessagingException {
-        customerService.customerSignup(customerDTO);
+    public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) throws MessagingException, RoleNotFoundException {
+        customerService.customerSignup
+                (customerDTO);
         return ResponseEntity.ok("Customer registered successfully!");
     }
 
@@ -45,7 +49,7 @@ public class AuthController {
 
     @PostMapping("/login/customer")
     public ResponseEntity<String> loginCustomer(@RequestBody LoginDTO loginDTO) {
-        return ResponseEntity.ok("Customer logged in successfully!");
+        return new ResponseEntity<>(customerService.login(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("/login/seller")

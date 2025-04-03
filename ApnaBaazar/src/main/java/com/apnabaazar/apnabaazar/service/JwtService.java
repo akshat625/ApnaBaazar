@@ -1,12 +1,9 @@
 package com.apnabaazar.apnabaazar.service;
 
-import com.apnabaazar.apnabaazar.model.token.UserVerificationToken;
-import com.apnabaazar.apnabaazar.model.users.User;
-import com.apnabaazar.apnabaazar.repository.UserVerificationTokenRepository;
+import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
@@ -16,10 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+
 @Getter
 @Setter
 @Service
@@ -32,7 +27,7 @@ public class JwtService {
     private long expirationTime;
 
     @Autowired
-    private UserVerificationTokenRepository userVerificationTokenRepository;
+    private AuthTokenRepository authTokenRepository;
 
     /**
      * Generates a JWT token with the given username.
@@ -119,16 +114,15 @@ public class JwtService {
 //
 //    }
 
-    public String generateToken(User user) {
-        String token = Jwts.builder()
-                .setSubject(user.getEmail())
+    public String generateToken(String email) {
+        return Jwts.builder()
+                .setSubject(email)
                 .claim("type", "activation")
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
-
-        return token;
     }
+
 }
 

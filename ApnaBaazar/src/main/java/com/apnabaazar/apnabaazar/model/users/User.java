@@ -1,9 +1,6 @@
 package com.apnabaazar.apnabaazar.model.users;
 
-import com.apnabaazar.apnabaazar.model.token.UserVerificationToken;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -11,9 +8,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -29,7 +24,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -47,8 +42,6 @@ public class User {
 
     private String password;
 
-    @OneToMany
-    private List<UserVerificationToken> tokens = new ArrayList<>();
 
     private boolean isDeleted = false;
 
@@ -77,4 +70,9 @@ public class User {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_id")
     private Set<Address> addresses = new HashSet<>();
+
+
+    public void addRole(Role role) {
+        this.roles.add(role);
+    }
 }

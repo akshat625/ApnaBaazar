@@ -24,7 +24,8 @@ public class EmailService {
                 "<h3>Please verify your email</h3>" +
                         "<p>Click the button below to verify your email address:</p>" +
                         "<a href='%s' style='display: inline-block; padding: 10px 20px; font-size: 16px; color: #ffffff; background-color: #28a745; text-decoration: none; border-radius: 5px;'>Click to Activate</a>" +
-                        "<p>Link expires in 3 hours.</p>",
+                        "<p>Link expires in 3 hours.</p>" +
+                        "<br><img src='https://media.makeameme.org/created/register-now-you-5bf869.jpg' width='300' height='300' alt='Company Logo'/>",
                 verificationLink
         );
 
@@ -42,7 +43,9 @@ public class EmailService {
 
         String emailContent = String.format(
                 "<h3>Email Verification Successful</h3>" +
-                        "<p>Your email has been successfully verified.</p>"
+                        "<p>Your email has been successfully verified.</p>",
+                "<br><img src='https://framerusercontent.com/images/Csc0qjXRWqlnkKQ34jtyO3bardw.jpeg' width='300' height='300' alt='Company Logo'/>"
+
         );
         helper.setTo(to);
         helper.setSubject(subject);

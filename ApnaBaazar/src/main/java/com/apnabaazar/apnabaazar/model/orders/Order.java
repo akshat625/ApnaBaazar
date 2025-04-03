@@ -40,7 +40,7 @@ package com.apnabaazar.apnabaazar.model.orders;
 
         private String customerAddressCountry;
 
-        private String customerAddressAddressLine;
+        private String customerAddressLine;
 
         private String customerAddressZipCode;
 

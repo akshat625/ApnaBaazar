@@ -6,28 +6,34 @@ import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.model.dto.SellerDTO;
 import com.apnabaazar.apnabaazar.exceptions.DuplicateResourceException;
 import com.apnabaazar.apnabaazar.model.users.Address;
+import com.apnabaazar.apnabaazar.model.users.Role;
 import com.apnabaazar.apnabaazar.model.users.Seller;
+import com.apnabaazar.apnabaazar.repository.RoleRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.management.relation.RoleNotFoundException;
+
 @Service
 public class SellerService {
 
     private UserRepository userRepository;
+    private RoleRepository roleRepository;
     private PasswordEncoder passwordEncoder;
     private EmailService emailService;
     private JwtService jwtService;
 
-    public SellerService(UserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService, JwtService jwtService) {
+    public SellerService(UserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService, JwtService jwtService, RoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.jwtService = jwtService;
+        this.roleRepository = roleRepository;
     }
 
-    public String sellerSignup(SellerDTO input) throws MessagingException {
+    public String sellerSignup(SellerDTO input) throws MessagingException, RoleNotFoundException {
         if(!input.getPassword().equals(input.getConfirmPassword())) {
             throw new PasswordMismatchException("Passwords don't match");
         }
@@ -53,6 +59,9 @@ public class SellerService {
             seller.setMiddleName(input.getMiddleName());
         }
 
+        Role role = roleRepository.findByAuthority("ROLE_SELLER")
+                .orElseThrow(()->new RoleNotFoundException("Role not found"));
+        seller.addRole(role);
 
         Address address = new Address();
         address.setAddressLine(input.getAddressLine());
