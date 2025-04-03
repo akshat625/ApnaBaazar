@@ -23,32 +23,19 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.expiration}")
-    private long expirationTime;
+    @Value("${jwt.expiration.activation}")
+    private long activationTokenExpirationTime;
+
+    @Value("${jwt.expiration.access}")
+    private long accessTokenExpirationTime;
+
+    @Value("${jwt.expiration.refresh}")
+    private long refreshTokenExpirationTime;
 
     @Autowired
     private AuthTokenRepository authTokenRepository;
 
-    /**
-     * Generates a JWT token with the given username.
-     */
-//    public String generateToken(String username, String tokenType) {
-//        Map<String, Object> claims = new HashMap<>();
-//        return createToken(claims, username, tokenType);
-//    }
-//    /**
-//     * Creates a signed JWT token.
-//     */
-//    private String createToken(Map<String, Object> claims, String subject, String tokenType) {
-//        return Jwts.builder()
-//
-//                .claim("type", tokenType)
-//                .setSubject(subject)
-//                .setIssuedAt(new Date(System.currentTimeMillis()))
-//                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-//                .signWith(getSigningKey())
-//                .compact();
-//    }
+
 
     /**
      * Retrieves the signing key from the secret.
@@ -114,14 +101,38 @@ public class JwtService {
 //
 //    }
 
-    public String generateToken(String email) {
+    public String generateActivationToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("type", "activation")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + activationTokenExpirationTime))
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public String generateAccessToken(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("type", "access")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpirationTime))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateRefreshToken(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("type", "refresh")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpirationTime))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String getTokenType(String token) {
+        return extractAllClaims(token).get("type").toString();
     }
 
 }

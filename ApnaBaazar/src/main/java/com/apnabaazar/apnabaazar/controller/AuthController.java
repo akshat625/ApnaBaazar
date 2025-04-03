@@ -2,6 +2,7 @@ package com.apnabaazar.apnabaazar.controller;
 
 import com.apnabaazar.apnabaazar.model.dto.CustomerDTO;
 import com.apnabaazar.apnabaazar.model.dto.LoginDTO;
+import com.apnabaazar.apnabaazar.model.dto.LoginResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.SellerDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.SellerService;
@@ -25,7 +26,7 @@ public class AuthController {
     private SellerService sellerService;
 
     @PostMapping("/register/seller")
-    public ResponseEntity<String> registerSeller(@RequestBody SellerDTO sellerDTO) throws MessagingException {
+    public ResponseEntity<String> registerSeller(@RequestBody SellerDTO sellerDTO) throws MessagingException, RoleNotFoundException {
         sellerService.sellerSignup(sellerDTO);
         return ResponseEntity.ok("Seller registered successfully!");
     }
@@ -48,7 +49,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/customer")
-    public ResponseEntity<String> loginCustomer(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) {
         return new ResponseEntity<>(customerService.login(loginDTO), HttpStatus.OK);
     }
 
@@ -65,5 +66,12 @@ public class AuthController {
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         return ResponseEntity.ok("Password successfully reset!");
+    }
+
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<LoginResponseDTO> refreshToken(@RequestParam String refreshToken) {
+        LoginResponseDTO response = customerService.refreshToken(refreshToken);
+        return ResponseEntity.ok(response);
     }
 }

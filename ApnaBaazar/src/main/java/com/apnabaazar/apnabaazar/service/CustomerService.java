@@ -3,13 +3,16 @@ package com.apnabaazar.apnabaazar.service;
 import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.model.dto.CustomerDTO;
 import com.apnabaazar.apnabaazar.model.dto.LoginDTO;
+import com.apnabaazar.apnabaazar.model.dto.LoginResponseDTO;
 import com.apnabaazar.apnabaazar.model.token.AuthToken;
+import com.apnabaazar.apnabaazar.model.token.TokenType;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Role;
 import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.RoleRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
 import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
+import io.jsonwebtoken.Claims;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -64,10 +67,10 @@ public class CustomerService {
         }
         userRepository.save(customer);
 
-        String activationToken = jwtService.generateToken(customer.getEmail());
+        String activationToken = jwtService.generateActivationToken(customer.getEmail());
 
 
-        AuthToken authToken = new AuthToken(activationToken, customer.getEmail(), Instant.now().plusMillis(jwtService.getExpirationTime()));
+        AuthToken authToken = new AuthToken(activationToken, customer.getEmail(), Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
         authTokenRepository.save(authToken);
 
         emailService.sendVerificationEmail(customer.getEmail(), "Account Verification", activationToken);
@@ -85,8 +88,8 @@ public class CustomerService {
 
         if (jwtService.isTokenExpired(token)) {
             authTokenRepository.delete(verificationToken);
-            String newToken = jwtService.generateToken(emailId);
-            AuthToken newVerificationToken = new AuthToken(newToken, emailId, Instant.now().plusMillis(jwtService.getExpirationTime()));
+            String newToken = jwtService.generateActivationToken(emailId);
+            AuthToken newVerificationToken = new AuthToken(newToken, emailId, Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
             authTokenRepository.save(newVerificationToken);
             emailService.sendVerificationEmail(emailId, "Account Verification", newToken);
             return "Token expired. A new verification email has been sent.";
@@ -115,8 +118,8 @@ public class CustomerService {
         }
         authTokenRepository.deleteByEmail(emailId);
 
-        String activationToken = jwtService.generateToken(emailId);
-        AuthToken authToken = new AuthToken(activationToken, emailId, Instant.now().plusMillis(jwtService.getExpirationTime()));
+        String activationToken = jwtService.generateActivationToken(emailId);
+        AuthToken authToken = new AuthToken(activationToken, emailId, Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
         authTokenRepository.save(authToken);
         emailService.sendVerificationEmail(user.getEmail(),"Account Verification", activationToken);
 
@@ -125,8 +128,94 @@ public class CustomerService {
 
 
 
-    public String login(LoginDTO loginDTO) {
-        return null;
+    public LoginResponseDTO login(LoginDTO loginDTO) {
+
+        User user = userRepository.findByEmail(loginDTO.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + loginDTO.getEmail()));
+
+        if (!user.isActive()) {
+            throw new AccountNotActivatedException("Account is not activated. Please verify your email.");
+        }
+
+        if (user.isLocked()) {
+            throw new AccountLockedException("Account is locked due to multiple failed attempts. Please contact support.");
+        }
+
+        if (user.isExpired()) {
+            throw new PasswordExpiredException("Your password has expired. Please reset your password.");
+        }
+
+        if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+            handleFailedLoginAttempt(user);
+            throw new InvalidCredentialsException("Invalid password");
+        }
+
+        // Reset failed attempts on successful login
+        if (user.getInvalidAttemptCount() > 0) {
+            user.setInvalidAttemptCount(0);
+            userRepository.save(user);
+        }
+
+        // Generate tokens
+        String accessToken = jwtService.generateAccessToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+
+        // Store refresh token in database
+        Instant refreshExpiry = Instant.now().plusMillis(jwtService.getRefreshTokenExpirationTime());
+        AuthToken authToken = new AuthToken(refreshToken, user.getEmail(), refreshExpiry);
+        authToken.setTokenType(TokenType.REFRESH);
+        authTokenRepository.save(authToken);
+
+        return new LoginResponseDTO(accessToken,refreshToken,"Bearer",user.getEmail(),user.getFirstName(),user.getLastName());
+    }
+
+    private void handleFailedLoginAttempt(User user) {
+        user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
+
+        // Lock account after 3 failed attempts
+        if (user.getInvalidAttemptCount() >= 3) {
+            user.setLocked(true);
+        }
+        userRepository.save(user);
+    }
+
+
+    /**
+     Validate refresh token exists...
+     Check token type...
+     Validate token expiration...
+     Extract email from token...
+     Verify token is valid...
+     Get user details...
+     Generate new access token
+     *
+     */
+    public LoginResponseDTO refreshToken(String refreshToken) {
+        AuthToken storedToken = authTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
+
+        if (storedToken.getTokenType() != TokenType.REFRESH) {
+            throw new InvalidTokenException("Invalid token type");
+        }
+
+        if (storedToken.getExpiresAt().isBefore(Instant.now())) {
+            authTokenRepository.delete(storedToken);
+            throw new InvalidTokenException("Refresh token expired");
+        }
+
+        String email = jwtService.extractUsername(refreshToken);
+
+        if (!jwtService.validateToken(refreshToken, email)) {
+            throw new InvalidTokenException("Invalid refresh token");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        String newAccessToken = jwtService.generateAccessToken(email);
+
+
+        return new LoginResponseDTO(newAccessToken,refreshToken,"Bearer",email,user.getFirstName(),user.getLastName());
     }
 }
 
