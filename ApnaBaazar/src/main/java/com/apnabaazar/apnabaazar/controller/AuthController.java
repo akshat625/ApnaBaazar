@@ -1,9 +1,7 @@
 package com.apnabaazar.apnabaazar.controller;
 
-import com.apnabaazar.apnabaazar.model.dto.CustomerDTO;
-import com.apnabaazar.apnabaazar.model.dto.LoginDTO;
-import com.apnabaazar.apnabaazar.model.dto.LoginResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.SellerDTO;
+import com.apnabaazar.apnabaazar.model.dto.*;
+import com.apnabaazar.apnabaazar.service.AuthService;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.mail.MessagingException;
@@ -20,42 +18,39 @@ import javax.management.relation.RoleNotFoundException;
 public class AuthController {
 
     @Autowired
-    private CustomerService customerService;
-
-    @Autowired
-    private SellerService sellerService;
+    private AuthService authService;
 
     @PostMapping("/register/seller")
     public ResponseEntity<String> registerSeller(@RequestBody SellerDTO sellerDTO) throws MessagingException, RoleNotFoundException {
-        sellerService.sellerSignup(sellerDTO);
+        authService.sellerSignup(sellerDTO);
         return ResponseEntity.ok("Seller registered successfully!");
     }
 
     @PostMapping("/register/customer")
     public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) throws MessagingException, RoleNotFoundException {
-        customerService.customerSignup
+        authService.customerSignup
                 (customerDTO);
         return ResponseEntity.ok("Customer registered successfully!");
     }
 
     @PutMapping("/verify/{token}")
     public String activateCustomer(@PathVariable String token) throws MessagingException {
-        return customerService.verifyUser(token);
+        return authService.verifyUser(token);
     }
 
     @PostMapping("/resend/{emailId}")
     public String resendVerificationEmail(@PathVariable String emailId) throws MessagingException {
-        return customerService.resendVerificationEmail(emailId);
+        return authService.resendVerificationEmail(emailId);
     }
 
     @PostMapping("/login/customer")
     public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) {
-        return new ResponseEntity<>(customerService.login(loginDTO), HttpStatus.OK);
+        return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("/login/seller")
-    public ResponseEntity<String> loginSeller(@RequestBody LoginDTO loginDTO) {
-        return ResponseEntity.ok("Seller logged in successfully!");
+    public ResponseEntity<LoginResponseDTO> loginSeller(@RequestBody LoginDTO loginDTO) {
+        return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("/forgot-password")
@@ -69,9 +64,15 @@ public class AuthController {
     }
 
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<LoginResponseDTO> refreshToken(@RequestParam String refreshToken) {
-        LoginResponseDTO response = customerService.refreshToken(refreshToken);
+    @PostMapping("/refresh-token/{refreshToken}")
+    public ResponseEntity<LoginResponseDTO> refreshToken(@PathVariable String refreshToken) {
+        LoginResponseDTO response = authService.refreshToken(refreshToken);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestParam String token) {
+        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
+
     }
 }

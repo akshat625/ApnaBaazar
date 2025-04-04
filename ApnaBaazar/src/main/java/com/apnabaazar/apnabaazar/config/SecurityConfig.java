@@ -26,6 +26,22 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    @Bean
+    public SecurityFilterChain filerChain(HttpSecurity http) throws Exception {
+        return http.authorizeHttpRequests(request -> request
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/seller/**").hasRole("SELLER")
+                        .requestMatchers("/customer/**").hasRole("CUSTOMER")
+                        .requestMatchers("/address/**").authenticated()
+                        .requestMatchers("/actuators/**").authenticated()
+                        .requestMatchers("/swagger-ui.html").authenticated()
+                        .anyRequest().permitAll())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .csrf(AbstractHttpConfigurer::disable)
+                .build();
+    }
     @Autowired
     private JwtFilter jwtFilter;
 
@@ -35,23 +51,6 @@ public class SecurityConfig {
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
-    }
-
-    @Bean
-    public SecurityFilterChain filerChain(HttpSecurity http) throws Exception {
-        return http.authorizeHttpRequests(request -> request
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/seller/**").hasRole("SELLER")
-                        .requestMatchers("/customer/**").permitAll()
-                        .requestMatchers("/address/**").authenticated()
-                        .requestMatchers("/actuators/**").authenticated()
-                        .requestMatchers("/swagger-ui.html").authenticated()
-                        .anyRequest().permitAll())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(AbstractHttpConfigurer::disable)
-                .build();
     }
 
     @Bean

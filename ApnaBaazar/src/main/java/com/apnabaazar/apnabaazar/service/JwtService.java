@@ -81,10 +81,11 @@ public class JwtService {
     /**
      * Validates if the token is valid.
      */
-    public Boolean validateToken(String token,String username) {
+    public Boolean validateToken(String token, String expectedType, String username) {
         try {
+            Claims claims = extractAllClaims(token);
             String email = extractUsername(token);
-            return (email.equals(username) && !isTokenExpired(token));
+            return (email.equals(username) && !isTokenExpired(token) && expectedType.equals(claims.get("type")));
         }catch(ExpiredJwtException e){
             throw new RuntimeException("Expired JWT Token");
         }catch(Exception e){
