@@ -1,6 +1,7 @@
 package com.apnabaazar.apnabaazar.filter;
 
 import com.apnabaazar.apnabaazar.service.JwtService;
+import com.apnabaazar.apnabaazar.service.TokenBlacklistService;
 import com.apnabaazar.apnabaazar.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,6 +24,9 @@ public class JwtFilter  extends OncePerRequestFilter{
     @Autowired
     private JwtService  jwtService;
 
+    @Autowired
+    private TokenBlacklistService  tokenBlacklistService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         // Skip filter for refresh token endpoint
@@ -35,6 +39,14 @@ public class JwtFilter  extends OncePerRequestFilter{
         String token = null;
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             token = authorizationHeader.substring(7);
+
+            //check for blacklist token
+            if(tokenBlacklistService.isTokenBlacklisted(token)){
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("token expired");
+                return;
+            }
+
             username = jwtService.extractUsername(token);
         }
         if (username != null) {
