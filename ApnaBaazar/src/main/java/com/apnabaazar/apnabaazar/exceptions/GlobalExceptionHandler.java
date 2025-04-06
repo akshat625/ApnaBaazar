@@ -51,6 +51,10 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(UserNotActiveException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotActiveException(UserNotActiveException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException e) {
