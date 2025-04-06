@@ -9,20 +9,25 @@ import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
 import com.apnabaazar.apnabaazar.repository.RoleRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.management.relation.RoleNotFoundException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class AuthService {
 
     private final TokenBlacklistService tokenBlacklistService;
+    private final RedisTemplate<String , String> redisTemplate;
     private UserRepository userRepository;
     private RoleRepository roleRepository;
     private PasswordEncoder passwordEncoder;
@@ -30,7 +35,8 @@ public class AuthService {
     private JwtService jwtService;
     private AuthTokenRepository authTokenRepository;
 
-    public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, EmailService emailService, JwtService jwtService, AuthTokenRepository authTokenRepository, TokenBlacklistService tokenBlacklistService) {
+    @Autowired
+    public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, EmailService emailService, JwtService jwtService, AuthTokenRepository authTokenRepository, TokenBlacklistService tokenBlacklistService, RedisTemplate<String, String> redisTemplate) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -38,6 +44,7 @@ public class AuthService {
         this.jwtService = jwtService;
         this.authTokenRepository = authTokenRepository;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.redisTemplate = redisTemplate;
     }
 
     public String customerSignup(CustomerDTO input) throws MessagingException, RoleNotFoundException {
@@ -123,7 +130,7 @@ public class AuthService {
      * Reset failed attempts on successful login...Generate tokens...Store refresh token in database
      */
 
-    public LoginResponseDTO login(LoginDTO loginDTO) {
+    public LoginResponseDTO login(LoginDTO loginDTO) throws MessagingException {
 
         User user = userRepository.findByEmail(loginDTO.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + loginDTO.getEmail()));
@@ -164,10 +171,11 @@ public class AuthService {
     /**
      * Lock account after 3 failed attempts
      */
-    private void handleFailedLoginAttempt(User user) {
+    private void handleFailedLoginAttempt(User user) throws MessagingException {
         user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
         if (user.getInvalidAttemptCount() >= 3) {
             user.setLocked(true);
+            emailService.sendAccountLockedEmail(user.getEmail(),"Account Locked");
         }
         userRepository.save(user);
     }
@@ -222,7 +230,7 @@ public class AuthService {
         long remainingTimeMillis = expiresAt.toEpochMilli() - Instant.now().toEpochMilli();
 
         if (remainingTimeMillis > 0) {
-            tokenBlacklistService.blacklistToken(token, remainingTimeMillis);
+            tokenBlacklistService.blacklistAccessToken(token, remainingTimeMillis);
         }
 
         List<AuthToken> allTokens = authTokenRepository.findAll();
@@ -236,6 +244,7 @@ public class AuthService {
 
 
     public String sellerSignup(SellerDTO input) throws MessagingException, RoleNotFoundException {
+
         if (!input.getPassword().equals(input.getConfirmPassword())) {
             throw new PasswordMismatchException("Passwords don't match");
         }
@@ -248,6 +257,7 @@ public class AuthService {
         if (userRepository.existsByCompanyName(input.getCompanyName())) {
             throw new DuplicateResourceException("Company already exist");
         }
+
 
         Seller seller = new Seller();
         seller.setFirstName(input.getFirstName());
@@ -283,5 +293,70 @@ public class AuthService {
     }
 
 
+    public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) throws MessagingException {
+
+        User user = userRepository.findByEmail(forgotPasswordDTO.getEmail())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (user.isActive() == false) {
+            throw new UserNotActiveException("User is not active with this email.");
+        }
+
+
+        Set<String> keys = redisTemplate.keys("bl_reset_token:*");
+        if (keys != null && !keys.isEmpty()) {
+            for (String key : keys) {
+                if (keys.contains(user.getEmail()))
+                    redisTemplate.delete(key);
+            }
+        }
+
+        String token = jwtService.generateforgotPasswordToken(user.getEmail());
+
+        long tokenExpirationMillis = jwtService.getForgotPasswordTokenExpirationTime();
+        tokenBlacklistService.blacklistResetToken(token, tokenExpirationMillis);
+
+        emailService.sendResetPasswordEmail(user.getEmail(), "Reset Password", token);
+
+        return "Password reset link has been sent to your email address";
+    }
+
+    public String resetPassword(ResetPasswordDTO resetPasswordDTO) {
+
+        if (!resetPasswordDTO.getPassword().equals(resetPasswordDTO.getConfirmPassword()))
+            throw new PasswordMismatchException("Passwords don't match");
+
+        if (jwtService.isTokenExpired(resetPasswordDTO.getToken()))
+            throw new InvalidTokenException("Token is expired");
+
+        String email = jwtService.extractUsername(resetPasswordDTO.getToken());
+
+        if (!jwtService.validateToken(resetPasswordDTO.getToken(), "forgot", email))
+            throw new InvalidTokenException("Token is not valid");
+
+        String tokenKey = "bl_reset_token:" + resetPasswordDTO.getToken();
+        String storedToken = tokenBlacklistService.getStoredToken(tokenKey);
+
+        if (storedToken == null)
+            throw new InvalidTokenException("Reset token not found or already used.");
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        user.setPassword(passwordEncoder.encode(resetPasswordDTO.getPassword()));
+
+        if (user.isLocked()) {
+            user.setLocked(false);
+            user.setInvalidAttemptCount(0);
+        }
+
+        user.setPasswordUpdateDate(LocalDateTime.now());
+        userRepository.save(user);
+
+        redisTemplate.delete(tokenKey);
+
+        return "Password reset successfully";
+
+    }
 }
 

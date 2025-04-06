@@ -30,7 +30,8 @@ public class JwtFilter  extends OncePerRequestFilter{
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         // Skip filter for refresh token endpoint
-        if (request.getRequestURI().startsWith("/auth/refresh-token")) {
+        if (request.getRequestURI().startsWith("/auth/refresh-token") ||
+                request.getRequestURI().startsWith("/auth/logout")) {
             chain.doFilter(request, response);
             return;
         }
@@ -41,7 +42,7 @@ public class JwtFilter  extends OncePerRequestFilter{
             token = authorizationHeader.substring(7);
 
             //check for blacklist token
-            if(tokenBlacklistService.isTokenBlacklisted(token)){
+            if(tokenBlacklistService.isAccessTokenBlacklisted(token)){
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("token expired");
                 return;

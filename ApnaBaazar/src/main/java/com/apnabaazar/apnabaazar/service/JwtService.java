@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
 
 @Getter
@@ -32,9 +33,11 @@ public class JwtService {
     @Value("${jwt.expiration.refresh}")
     private long refreshTokenExpirationTime;
 
+    @Value("${jwt.expiration.forgot}")
+    private long forgotPasswordTokenExpirationTime;
+
     @Autowired
     private AuthTokenRepository authTokenRepository;
-
 
 
     /**
@@ -86,22 +89,21 @@ public class JwtService {
             Claims claims = extractAllClaims(token);
             String email = extractUsername(token);
             return (email.equals(username) && !isTokenExpired(token) && expectedType.equals(claims.get("type")));
-        }catch(ExpiredJwtException e){
+        } catch (ExpiredJwtException e) {
             throw new RuntimeException("Expired JWT Token");
-        }catch(Exception e){
+        } catch (Exception e) {
             throw new RuntimeException("Invalid JWT Token");
         }
     }
 
     /**
-     *Invalidates the existing token
+     * Invalidates the existing token
      */
 //    public void invalidateToken(String token) {
 //        Claims claims = extractAllClaims(token);
 //        claims.setExpiration(new Date(System.currentTimeMillis() - 1000));
 //
 //    }
-
     public String generateActivationToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
@@ -128,6 +130,16 @@ public class JwtService {
                 .claim("type", "refresh")
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpirationTime))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateforgotPasswordToken(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("type", "forgot")
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(Instant.now().plusMillis(forgotPasswordTokenExpirationTime)))
                 .signWith(getSigningKey())
                 .compact();
     }

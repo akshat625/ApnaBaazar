@@ -44,23 +44,30 @@ public class AuthController {
     }
 
     @PostMapping("/login/customer")
-    public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) throws MessagingException {
         return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("/login/seller")
-    public ResponseEntity<LoginResponseDTO> loginSeller(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<LoginResponseDTO> loginSeller(@RequestBody LoginDTO loginDTO) throws MessagingException {
+        return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
+    }
+
+    @PostMapping("/login/admin")
+    public ResponseEntity<LoginResponseDTO> loginAdmin(@RequestBody LoginDTO loginDTO) throws MessagingException {
         return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
-        return ResponseEntity.ok("Password reset instructions sent to email!");
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordDTO  forgotPasswordDTO) throws MessagingException {
+
+        return ResponseEntity.ok(authService.forgotPassword(forgotPasswordDTO));
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
-        return ResponseEntity.ok("Password successfully reset!");
+    @PutMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordDTO resetPasswordDTO) {
+
+        return ResponseEntity.ok(authService.resetPassword(resetPasswordDTO));
     }
 
 
