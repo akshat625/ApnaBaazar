@@ -70,6 +70,46 @@ public class EmailService {
         emailSender.send(message);
     }
 
+    @Async
+    public void sendResetPasswordEmail(String to, String subject, String token) throws MessagingException {
+        MimeMessage message = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        String verificationLink = "http://localhost:8080/auth/forgot-password/" + token;
+        String emailContent = String.format(
+                "<h3>Please verify your email</h3>" +
+                        "<p>Click the button below to reset your password:</p>" +
+                        "<a href='%s' style='display: inline-block; padding: 10px 20px; font-size: 16px; color: #ffffff; background-color: #28a745; text-decoration: none; border-radius: 5px;'>Click to Activate</a>" +
+                        "<p>Link valid for 15 minutes.</p>" +
+                        "<br><img src='https://media.makeameme.org/created/you-forgot-again-5c09c4.jpg' width='300' height='300' alt='Company Logo'/>",
+                verificationLink
+        );
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(emailContent, true);
+
+        emailSender.send(message);
+
+    }
+
+    @Async
+    public void sendAccountLockedEmail(String to, String subject) throws MessagingException {
+        MimeMessage message = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        String emailContent = String.format(
+                "<h3>Account Locked</h3>" +
+                        "<p>Your Account has been locked for entering multiple wrong credentials. Reset your password.</p>"+
+                        "<br><img src='https://i.imgflip.com/3m564o.jpg' width='300' height='300' alt='Company Logo'/>"
+                );
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(emailContent, true);
+
+        emailSender.send(message);
+
+    }
+
 
 
 }
