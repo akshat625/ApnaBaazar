@@ -8,8 +8,6 @@ import com.apnabaazar.apnabaazar.model.users.*;
 import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
 import com.apnabaazar.apnabaazar.repository.RoleRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,7 +17,6 @@ import org.springframework.stereotype.Service;
 import javax.management.relation.RoleNotFoundException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -135,6 +132,7 @@ public class AuthService {
         User user = userRepository.findByEmail(loginDTO.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + loginDTO.getEmail()));
 
+        System.out.println(loginDTO.getEmail());
         if (!user.isActive()) {
             throw new AccountNotActivatedException("Account is not activated. Please verify your email.");
         }
@@ -157,8 +155,8 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        String accessToken = jwtService.generateAccessToken(user.getEmail());
         String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+        String accessToken = jwtService.generateAccessToken(user.getEmail(),refreshToken);
 
         Instant refreshExpiry = Instant.now().plusMillis(jwtService.getRefreshTokenExpirationTime());
         AuthToken authToken = new AuthToken(refreshToken, user.getEmail(), refreshExpiry);
@@ -212,7 +210,7 @@ public class AuthService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
 
-        String newAccessToken = jwtService.generateAccessToken(email);
+        String newAccessToken = jwtService.generateAccessToken(email,refreshToken);
 
 
         return new LoginResponseDTO(newAccessToken, refreshToken, "Bearer", email, user.getFirstName(), user.getLastName());
@@ -233,11 +231,12 @@ public class AuthService {
             tokenBlacklistService.blacklistAccessToken(token, remainingTimeMillis);
         }
 
-        List<AuthToken> allTokens = authTokenRepository.findAll();
-        for (AuthToken authToken : allTokens) {
-            if (authToken.getEmail().equals(email) && authToken.getTokenType().equals(TokenType.REFRESH))
-                authTokenRepository.delete(authToken);
-        }
+        //delete refresh token of particular device
+        String issuerRefreshToken = jwtService.extractIssuer(token);
+        AuthToken tokenToDelete = authTokenRepository.findByToken(issuerRefreshToken)
+                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
+        authTokenRepository.delete(tokenToDelete);
+
 
         return "Logged out";
     }
@@ -311,9 +310,9 @@ public class AuthService {
             }
         }
 
-        String token = jwtService.generateforgotPasswordToken(user.getEmail());
+        String token = jwtService.generateResetPasswordToken(user.getEmail());
 
-        long tokenExpirationMillis = jwtService.getForgotPasswordTokenExpirationTime();
+        long tokenExpirationMillis = jwtService.getResetPasswordTokenExpirationTime();
         tokenBlacklistService.blacklistResetToken(token, tokenExpirationMillis);
 
         emailService.sendResetPasswordEmail(user.getEmail(), "Reset Password", token);

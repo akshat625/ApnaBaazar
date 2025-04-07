@@ -35,7 +35,7 @@ jwt:
   expiration:
     activation: 10800000
     access: 900000
-    forgot: 180000
+    reset: 900000
     refresh: 86400000
 
 

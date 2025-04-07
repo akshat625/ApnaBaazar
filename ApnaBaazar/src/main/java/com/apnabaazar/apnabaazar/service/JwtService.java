@@ -1,5 +1,6 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.exceptions.InvalidTokenException;
 import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -33,8 +34,8 @@ public class JwtService {
     @Value("${jwt.expiration.refresh}")
     private long refreshTokenExpirationTime;
 
-    @Value("${jwt.expiration.forgot}")
-    private long forgotPasswordTokenExpirationTime;
+    @Value("${jwt.expiration.reset}")
+    private long resetPasswordTokenExpirationTime;
 
     @Autowired
     private AuthTokenRepository authTokenRepository;
@@ -73,6 +74,10 @@ public class JwtService {
         return extractAllClaims(token).getExpiration();
     }
 
+    public String extractIssuer(String token) {
+        return extractAllClaims(token).getIssuer();
+    }
+
     /**
      * Checks if the token is expired.
      */
@@ -90,20 +95,13 @@ public class JwtService {
             String email = extractUsername(token);
             return (email.equals(username) && !isTokenExpired(token) && expectedType.equals(claims.get("type")));
         } catch (ExpiredJwtException e) {
-            throw new RuntimeException("Expired JWT Token");
+            throw new InvalidTokenException("Expired JWT Token");
         } catch (Exception e) {
-            throw new RuntimeException("Invalid JWT Token");
+            throw new InvalidTokenException("Invalid JWT Token");
         }
     }
 
-    /**
-     * Invalidates the existing token
-     */
-//    public void invalidateToken(String token) {
-//        Claims claims = extractAllClaims(token);
-//        claims.setExpiration(new Date(System.currentTimeMillis() - 1000));
-//
-//    }
+
     public String generateActivationToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
@@ -114,8 +112,9 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateAccessToken(String email) {
+    public String generateAccessToken(String email, String refreshToken) {
         return Jwts.builder()
+                .setIssuer(refreshToken)
                 .setSubject(email)
                 .claim("type", "access")
                 .setIssuedAt(new Date())
@@ -134,12 +133,12 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateforgotPasswordToken(String email) {
+    public String generateResetPasswordToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("type", "forgot")
                 .setIssuedAt(Date.from(Instant.now()))
-                .setExpiration(Date.from(Instant.now().plusMillis(forgotPasswordTokenExpirationTime)))
+                .setExpiration(Date.from(Instant.now().plusMillis(resetPasswordTokenExpirationTime)))
                 .signWith(getSigningKey())
                 .compact();
     }
