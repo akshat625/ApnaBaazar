@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class AuthService {
@@ -297,23 +298,28 @@ public class AuthService {
         User user = userRepository.findByEmail(forgotPasswordDTO.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if (user.isActive() == false) {
+        if (!user.isActive()) {
             throw new UserNotActiveException("User is not active with this email.");
         }
 
 
-        Set<String> keys = redisTemplate.keys("bl_reset_token:*");
-        if (keys != null && !keys.isEmpty()) {
-            for (String key : keys) {
-                if (keys.contains(user.getEmail()))
-                    redisTemplate.delete(key);
-            }
+        // Create a user-specific key in Redis to track their current reset token
+        String userResetTokenKey = "user_reset_token:" + forgotPasswordDTO.getEmail();
+
+        // If user already has a reset token, invalidate it by deleting from Redis
+        String previousToken = redisTemplate.opsForValue().get(userResetTokenKey);
+        if (previousToken != null) {
+            String previousTokenKey = "bl_reset_token:" + previousToken;
+            redisTemplate.delete(previousTokenKey);
         }
 
         String token = jwtService.generateResetPasswordToken(user.getEmail());
 
         long tokenExpirationMillis = jwtService.getResetPasswordTokenExpirationTime();
         tokenBlacklistService.blacklistResetToken(token, tokenExpirationMillis);
+
+        // Store reference to the user's current reset token
+        redisTemplate.opsForValue().set(userResetTokenKey, token, tokenExpirationMillis, TimeUnit.MILLISECONDS);
 
         emailService.sendResetPasswordEmail(user.getEmail(), "Reset Password", token);
 

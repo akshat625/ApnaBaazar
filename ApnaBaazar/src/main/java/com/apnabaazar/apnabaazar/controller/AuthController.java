@@ -27,7 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/customer")
-    public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) throws MessagingException, RoleNotFoundException {
+    public ResponseEntity<String> registerCustomer(@RequestBody  CustomerDTO customerDTO) throws MessagingException, RoleNotFoundException {
         authService.customerSignup
                 (customerDTO);
         return ResponseEntity.ok("Customer registered successfully!");
