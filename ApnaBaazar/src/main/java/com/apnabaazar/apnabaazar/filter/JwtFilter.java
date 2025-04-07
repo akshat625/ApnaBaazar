@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,6 +30,8 @@ public class JwtFilter  extends OncePerRequestFilter{
     @Autowired
     private JwtService  jwtService;
 
+    @Autowired
+    private HandlerExceptionResolver handlerExceptionResolver;
 
     @Autowired
     private TokenBlacklistService  tokenBlacklistService;
@@ -41,7 +44,6 @@ public class JwtFilter  extends OncePerRequestFilter{
             chain.doFilter(request, response);
             return;
         }
-
         String authorizationHeader = request.getHeader("Authorization");
         String username = null;
         String token = null;
@@ -50,39 +52,30 @@ public class JwtFilter  extends OncePerRequestFilter{
             if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
                 token = authorizationHeader.substring(7);
 
-                // Check for blacklist token
-                if (tokenBlacklistService.isAccessTokenBlacklisted(token)) {
-                    sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Token has been invalidated");
+                //check for blacklist token
+                if(tokenBlacklistService.isAccessTokenBlacklisted(token)){
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("token expired");
                     return;
                 }
 
-                // Extract username - will throw exception if token is malformed
                 username = jwtService.extractUsername(token);
-
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            }
+            if (username != null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                     if (jwtService.validateToken(token, "access", username)) {
-                        UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(auth);
                     }
-                }
             }
             chain.doFilter(request, response);
-        } catch (ExpiredJwtException e) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "JWT token has expired");
-        } catch (InvalidTokenException | MalformedJwtException e) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
-        } catch (Exception e) {
-            sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the token");
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token is expired.");
+        } catch (Exception exception) {
+            handlerExceptionResolver.resolveException(request, response, null, exception);
         }
-    }
-
-    private void sendError(HttpServletResponse response, int status, String message) throws IOException {
-        response.setStatus(status);
-        response.setContentType("application/json");
-        response.getWriter().write("{\"error\":\"" + message + "\"}");
     }
 }

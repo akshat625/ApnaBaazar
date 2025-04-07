@@ -19,13 +19,14 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class AuthService {
 
     private final TokenBlacklistService tokenBlacklistService;
-    private final RedisTemplate<String , String> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
     private UserRepository userRepository;
     private RoleRepository roleRepository;
     private PasswordEncoder passwordEncoder;
@@ -156,8 +157,12 @@ public class AuthService {
             userRepository.save(user);
         }
 
+        String sessionId = UUID.randomUUID().toString();
         String refreshToken = jwtService.generateRefreshToken(user.getEmail());
-        String accessToken = jwtService.generateAccessToken(user.getEmail(),refreshToken);
+        String accessToken = jwtService.generateAccessToken(user.getEmail(), sessionId);
+
+        //store mapping between access and refresh token
+        redisTemplate.opsForValue().set("session:" + sessionId, refreshToken, jwtService.getAccessTokenExpirationTime(), TimeUnit.MILLISECONDS);
 
         Instant refreshExpiry = Instant.now().plusMillis(jwtService.getRefreshTokenExpirationTime());
         AuthToken authToken = new AuthToken(refreshToken, user.getEmail(), refreshExpiry);
@@ -174,7 +179,7 @@ public class AuthService {
         user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
         if (user.getInvalidAttemptCount() >= 3) {
             user.setLocked(true);
-            emailService.sendAccountLockedEmail(user.getEmail(),"Account Locked");
+            emailService.sendAccountLockedEmail(user.getEmail(), "Account Locked");
         }
         userRepository.save(user);
     }
@@ -211,7 +216,8 @@ public class AuthService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
 
-        String newAccessToken = jwtService.generateAccessToken(email,refreshToken);
+        String sessionId = UUID.randomUUID().toString();
+        String newAccessToken = jwtService.generateAccessToken(email, sessionId);
 
 
         return new LoginResponseDTO(newAccessToken, refreshToken, "Bearer", email, user.getFirstName(), user.getLastName());
@@ -225,19 +231,22 @@ public class AuthService {
             throw new InvalidTokenException("Invalid token");
         }
 
+        //blacklisting the access token
         Instant expiresAt = jwtService.extractExpiration(token).toInstant();
         long remainingTimeMillis = expiresAt.toEpochMilli() - Instant.now().toEpochMilli();
-
         if (remainingTimeMillis > 0) {
             tokenBlacklistService.blacklistAccessToken(token, remainingTimeMillis);
         }
 
-        //delete refresh token of particular device
-        String issuerRefreshToken = jwtService.extractIssuer(token);
-        AuthToken tokenToDelete = authTokenRepository.findByToken(issuerRefreshToken)
-                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
-        authTokenRepository.delete(tokenToDelete);
+        String sessionId = jwtService.extractIssuer(token);
 
+        //deleting the refresh token from db and redis
+        String sessionKey = "session:" +  sessionId;
+        String refreshToken = redisTemplate.opsForValue().get(sessionKey);
+        if (refreshToken != null) {
+            authTokenRepository.findByToken(refreshToken).ifPresent(authToken -> authTokenRepository.delete(authToken));
+            redisTemplate.delete("session:" + sessionId);
+        }
 
         return "Logged out";
     }

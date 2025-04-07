@@ -43,7 +43,7 @@ public class AuthController {
         return authService.resendVerificationEmail(emailId);
     }
 
-    @PostMapping("/login/customer")
+    @PostMapping("/login/customer"  )
     public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) throws MessagingException {
         return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }

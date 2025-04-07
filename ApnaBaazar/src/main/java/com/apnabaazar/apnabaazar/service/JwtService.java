@@ -112,9 +112,9 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateAccessToken(String email, String refreshToken) {
+    public String generateAccessToken(String email, String sessionId) {
         return Jwts.builder()
-                .setIssuer(refreshToken)
+                .setIssuer(sessionId)
                 .setSubject(email)
                 .claim("type", "access")
                 .setIssuedAt(new Date())
