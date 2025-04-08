@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.management.relation.RoleNotFoundException;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -109,9 +110,11 @@ public class AuthService {
     }
 
 
-    public String resendVerificationEmail(String emailId) throws MessagingException {
-        User user = userRepository.findByEmail(emailId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    public String resendVerificationEmail(String emailId) throws MessagingException, RoleNotFoundException {
+        Role role = roleRepository.findByAuthority("ROLE_CUSTOMER")
+                .orElseThrow(()-> new RoleNotFoundException("Role not found"));
+        User user = userRepository.findByEmailAndRoles(emailId,Set.of(role))
+                .orElseThrow(() -> new UserNotFoundException("Customer not found with this email"));
         if (user.isActive()) {
             return "User is already active";
         }
@@ -219,6 +222,9 @@ public class AuthService {
         String sessionId = UUID.randomUUID().toString();
         String newAccessToken = jwtService.generateAccessToken(email, sessionId);
 
+        //store mapping between access and refresh token
+        redisTemplate.opsForValue().set("session:" + sessionId, refreshToken, jwtService.getAccessTokenExpirationTime(), TimeUnit.MILLISECONDS);
+
 
         return new LoginResponseDTO(newAccessToken, refreshToken, "Bearer", email, user.getFirstName(), user.getLastName());
     }
@@ -228,7 +234,7 @@ public class AuthService {
 
         String email = jwtService.extractUsername(token);
         if (!jwtService.validateToken(token, "access", email)) {
-            throw new InvalidTokenException("Invalid token");
+            throw new InvalidTokenException("Invalid access token");
         }
 
         //blacklisting the access token

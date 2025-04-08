@@ -39,7 +39,7 @@ public class AuthController {
     }
 
     @PostMapping("/resend/{emailId}")
-    public String resendVerificationEmail(@PathVariable String emailId) throws MessagingException {
+    public String resendVerificationEmail(@PathVariable String emailId) throws MessagingException, RoleNotFoundException {
         return authService.resendVerificationEmail(emailId);
     }
 

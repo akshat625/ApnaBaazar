@@ -38,12 +38,8 @@ public class JwtFilter  extends OncePerRequestFilter{
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-        // Skip filter for refresh token endpoint
-        if (request.getRequestURI().startsWith("/auth/refresh-token") ||
-                request.getRequestURI().startsWith("/auth/logout")) {
-            chain.doFilter(request, response);
-            return;
-        }
+
+
         String authorizationHeader = request.getHeader("Authorization");
         String username = null;
         String token = null;
