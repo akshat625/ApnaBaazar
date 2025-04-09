@@ -1,10 +1,7 @@
 package com.apnabaazar.apnabaazar.service;
 
-import com.apnabaazar.apnabaazar.exceptions.EmailAlreadyInUseException;
-import com.apnabaazar.apnabaazar.exceptions.GstAlreadyInUseException;
-import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
+import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.model.dto.SellerDTO;
-import com.apnabaazar.apnabaazar.exceptions.DuplicateResourceException;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Role;
 import com.apnabaazar.apnabaazar.model.users.Seller;
@@ -14,7 +11,6 @@ import jakarta.mail.MessagingException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.management.relation.RoleNotFoundException;
 
 @Service
 public class SellerService {
@@ -33,7 +29,7 @@ public class SellerService {
         this.roleRepository = roleRepository;
     }
 
-    public String sellerSignup(SellerDTO input) throws MessagingException, RoleNotFoundException {
+    public String sellerSignup(SellerDTO input) throws MessagingException {
         if(!input.getPassword().equals(input.getConfirmPassword())) {
             throw new PasswordMismatchException("Passwords don't match");
         }

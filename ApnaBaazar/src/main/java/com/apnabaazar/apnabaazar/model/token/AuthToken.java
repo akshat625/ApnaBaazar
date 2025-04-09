@@ -1,5 +1,6 @@
 package com.apnabaazar.apnabaazar.model.token;
 
+import com.apnabaazar.apnabaazar.enums.TokenType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,12 +1,12 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.exceptions.ExpiredTokenException;
 import com.apnabaazar.apnabaazar.exceptions.InvalidTokenException;
 import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,12 +52,18 @@ public class JwtService {
     /**
      * Extracts all claims from the token.
      */
-    private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    public Claims extractAllClaims(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            return e.getClaims();
+        } catch (JwtException e) {
+            throw new InvalidTokenException("Invalid token");
+        }
     }
 
     /**
@@ -89,16 +95,27 @@ public class JwtService {
     /**
      * Validates if the token is valid.
      */
-    public Boolean validateToken(String token, String expectedType, String username) {
-        try {
-            Claims claims = extractAllClaims(token);
-            String email = extractUsername(token);
-            return (email.equals(username) && !isTokenExpired(token) && expectedType.equals(claims.get("type")));
-        } catch (ExpiredJwtException e) {
-            throw new InvalidTokenException("Expired JWT Token");
-        } catch (Exception e) {
-            throw new InvalidTokenException("Invalid JWT Token");
+
+
+    public boolean validateToken(String token, String tokenType,String username) {
+        final String email = extractUsername(token);
+        final Claims claims = extractAllClaims(token);
+
+        if (!username.equals(email)) {
+            throw new InvalidTokenException("Token does not match the provided user.");
         }
+
+        String typeFromToken = (String) claims.get("type");
+        if (!tokenType.equals(typeFromToken)) {
+            throw new InvalidTokenException("Token type mismatch. Expected: " + tokenType + ", but found: " + typeFromToken);
+        }
+
+        if (isTokenExpired(token)) {
+            throw new ExpiredTokenException("Token has expired.");
+        }
+
+
+        return true;
     }
 
 

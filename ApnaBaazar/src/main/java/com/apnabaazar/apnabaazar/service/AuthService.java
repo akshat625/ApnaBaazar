@@ -3,22 +3,23 @@ package com.apnabaazar.apnabaazar.service;
 import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.model.dto.*;
 import com.apnabaazar.apnabaazar.model.token.AuthToken;
-import com.apnabaazar.apnabaazar.model.token.TokenType;
+import com.apnabaazar.apnabaazar.enums.TokenType;
 import com.apnabaazar.apnabaazar.model.users.*;
 import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
 import com.apnabaazar.apnabaazar.repository.RoleRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.management.relation.RoleNotFoundException;
+import java.security.SignatureException;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -47,7 +48,7 @@ public class AuthService {
         this.redisTemplate = redisTemplate;
     }
 
-    public String customerSignup(CustomerDTO input) throws MessagingException, RoleNotFoundException {
+    public String customerSignup(CustomerDTO input) {
         if (!input.getPassword().equals(input.getConfirmPassword())) {
             throw new PasswordMismatchException("Passwords don't match");
         }
@@ -76,13 +77,20 @@ public class AuthService {
         AuthToken authToken = new AuthToken(activationToken, customer.getEmail(), Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
         authTokenRepository.save(authToken);
 
-        emailService.sendVerificationEmail(customer.getEmail(), "Account Verification", activationToken);
+        try {
+            emailService.sendVerificationEmail(customer.getEmail(), "Account Verification", activationToken);
+        } catch (MessagingException e) {
+            throw new EmailSendingException("Failed to send verification email", e);
+        }
+
         return "User registered successfully";
     }
 
 
-    public String verifyUser(String token) throws MessagingException {
+    public String verifyUser(String token) {
         String emailId = jwtService.extractUsername(token);
+
+
 
         AuthToken verificationToken = authTokenRepository.findByToken(token)
                 .orElseThrow(() -> new VerificationTokenNotFoundException("Token not found or already used."));
@@ -92,7 +100,11 @@ public class AuthService {
             String newToken = jwtService.generateActivationToken(emailId);
             AuthToken newVerificationToken = new AuthToken(newToken, emailId, Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
             authTokenRepository.save(newVerificationToken);
-            emailService.sendVerificationEmail(emailId, "Account Verification", newToken);
+            try {
+                emailService.sendVerificationEmail(emailId, "Account Verification", newToken);
+            } catch (MessagingException e) {
+                throw new EmailSendingException("Failed to send new verification email.", e);
+            }
             return "Token expired. A new verification email has been sent.";
         }
         if (!jwtService.validateToken(token, "activation", emailId)) {
@@ -104,16 +116,19 @@ public class AuthService {
         userRepository.save(user);
 
         authTokenRepository.delete(verificationToken);
-        emailService.sendVerificationSuccessEmail(emailId, "Email Verification Successful");
-
+        try {
+            emailService.sendVerificationSuccessEmail(emailId, "Email Verification Successful");
+        } catch (MessagingException e) {
+            throw new EmailSendingException("Failed to send verification success email.", e);
+        }
         return "Email verified successfully";
     }
 
 
-    public String resendVerificationEmail(String emailId) throws MessagingException, RoleNotFoundException {
+    public String resendVerificationEmail(String emailId) throws MessagingException {
         Role role = roleRepository.findByAuthority("ROLE_CUSTOMER")
-                .orElseThrow(()-> new RoleNotFoundException("Role not found"));
-        User user = userRepository.findByEmailAndRoles(emailId,Set.of(role))
+                .orElseThrow(() -> new RoleNotFoundException("Role not found"));
+        User user = userRepository.findByEmailAndRoles(emailId, Set.of(role))
                 .orElseThrow(() -> new UserNotFoundException("Customer not found with this email"));
         if (user.isActive()) {
             return "User is already active";
@@ -123,7 +138,11 @@ public class AuthService {
         String activationToken = jwtService.generateActivationToken(emailId);
         AuthToken authToken = new AuthToken(activationToken, emailId, Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
         authTokenRepository.save(authToken);
-        emailService.sendVerificationEmail(user.getEmail(), "Account Verification", activationToken);
+        try {
+            emailService.sendVerificationEmail(user.getEmail(), "Account Verification", activationToken);
+        } catch (MessagingException e) {
+            throw new EmailSendingException("Failed to send verification email", e);
+        }
 
         return "Verification email resent successfully";
     }
@@ -132,12 +151,11 @@ public class AuthService {
      * Reset failed attempts on successful login...Generate tokens...Store refresh token in database
      */
 
-    public LoginResponseDTO login(LoginDTO loginDTO) throws MessagingException {
+    public LoginResponseDTO login(LoginDTO loginDTO) {
 
         User user = userRepository.findByEmail(loginDTO.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + loginDTO.getEmail()));
 
-        System.out.println(loginDTO.getEmail());
         if (!user.isActive()) {
             throw new AccountNotActivatedException("Account is not activated. Please verify your email.");
         }
@@ -155,6 +173,7 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid password");
         }
 
+
         if (user.getInvalidAttemptCount() > 0) {
             user.setInvalidAttemptCount(0);
             userRepository.save(user);
@@ -165,7 +184,7 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(user.getEmail(), sessionId);
 
         //store mapping between access and refresh token
-        redisTemplate.opsForValue().set("session:" + sessionId, refreshToken, jwtService.getAccessTokenExpirationTime(), TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set("session:" + sessionId, refreshToken, jwtService.getAccessTokenExpirationTime() + 60000, TimeUnit.MILLISECONDS);
 
         Instant refreshExpiry = Instant.now().plusMillis(jwtService.getRefreshTokenExpirationTime());
         AuthToken authToken = new AuthToken(refreshToken, user.getEmail(), refreshExpiry);
@@ -178,11 +197,15 @@ public class AuthService {
     /**
      * Lock account after 3 failed attempts
      */
-    private void handleFailedLoginAttempt(User user) throws MessagingException {
+    private void handleFailedLoginAttempt(User user) {
         user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
         if (user.getInvalidAttemptCount() >= 3) {
             user.setLocked(true);
-            emailService.sendAccountLockedEmail(user.getEmail(), "Account Locked");
+            try {
+                emailService.sendAccountLockedEmail(user.getEmail(), "Account Locked");
+            } catch (MessagingException e) {
+                throw new EmailSendingException("Failed to send account locked notification", e);
+            }
         }
         userRepository.save(user);
     }
@@ -247,18 +270,18 @@ public class AuthService {
         String sessionId = jwtService.extractIssuer(token);
 
         //deleting the refresh token from db and redis
-        String sessionKey = "session:" +  sessionId;
+        String sessionKey = "session:" + sessionId;
         String refreshToken = redisTemplate.opsForValue().get(sessionKey);
         if (refreshToken != null) {
             authTokenRepository.findByToken(refreshToken).ifPresent(authToken -> authTokenRepository.delete(authToken));
-            redisTemplate.delete("session:" + sessionId);
+            redisTemplate.delete(sessionKey);
         }
 
         return "Logged out";
     }
 
 
-    public String sellerSignup(SellerDTO input) throws MessagingException, RoleNotFoundException {
+    public String sellerSignup(SellerDTO input) {
 
         if (!input.getPassword().equals(input.getConfirmPassword())) {
             throw new PasswordMismatchException("Passwords don't match");
@@ -302,13 +325,16 @@ public class AuthService {
 
         userRepository.save(seller);
 
-        emailService.sendSuccessEmailToSeller(input.getEmail(), "Account Created");
-
+        try {
+            emailService.sendSuccessEmailToSeller(input.getEmail(), "Account Created");
+        } catch (MessagingException e) {
+            throw new EmailSendingException("Failed to send success email to seller", e);
+        }
         return "Seller registered successfully!";
     }
 
 
-    public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) throws MessagingException {
+    public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) {
 
         User user = userRepository.findByEmail(forgotPasswordDTO.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -336,47 +362,83 @@ public class AuthService {
         // Store reference to the user's current reset token
         redisTemplate.opsForValue().set(userResetTokenKey, token, tokenExpirationMillis, TimeUnit.MILLISECONDS);
 
-        emailService.sendResetPasswordEmail(user.getEmail(), "Reset Password", token);
-
+        try {
+            emailService.sendResetPasswordEmail(user.getEmail(), "Reset Password", token);
+        } catch (MessagingException e) {
+            throw new EmailSendingException("Failed to send password reset email", e);
+        }
         return "Password reset link has been sent to your email address";
     }
 
     public String resetPassword(ResetPasswordDTO resetPasswordDTO) {
-
-        if (!resetPasswordDTO.getPassword().equals(resetPasswordDTO.getConfirmPassword()))
-            throw new PasswordMismatchException("Passwords don't match");
-
-        if (jwtService.isTokenExpired(resetPasswordDTO.getToken()))
-            throw new InvalidTokenException("Token is expired");
-
-        String email = jwtService.extractUsername(resetPasswordDTO.getToken());
-
-        if (!jwtService.validateToken(resetPasswordDTO.getToken(), "forgot", email))
-            throw new InvalidTokenException("Token is not valid");
-
-        String tokenKey = "bl_reset_token:" + resetPasswordDTO.getToken();
-        String storedToken = tokenBlacklistService.getStoredToken(tokenKey);
-
-        if (storedToken == null)
-            throw new InvalidTokenException("Reset token not found or already used.");
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        user.setPassword(passwordEncoder.encode(resetPasswordDTO.getPassword()));
-
-        if (user.isLocked()) {
-            user.setLocked(false);
-            user.setInvalidAttemptCount(0);
+        // Check if token exists
+        if (resetPasswordDTO.getToken() == null || resetPasswordDTO.getToken().isBlank()) {
+            throw new InvalidTokenException("Reset token is missing");
         }
 
-        user.setPasswordUpdateDate(LocalDateTime.now());
-        userRepository.save(user);
+        // Check password match
+        if (!resetPasswordDTO.getPassword().equals(resetPasswordDTO.getConfirmPassword())) {
+            throw new PasswordMismatchException("Passwords don't match");
+        }
 
-        redisTemplate.delete(tokenKey);
+        try {
+            // First attempt to extract claims to catch malformed tokens
+            String email = jwtService.extractUsername(resetPasswordDTO.getToken());
 
-        return "Password reset successfully";
+            // Check token type explicitly before other validations
+            String tokenType = jwtService.getTokenType(resetPasswordDTO.getToken());
+            if (!"forgot".equals(tokenType)) {
+                throw new InvalidTokenException("Invalid token type. Expected 'forgot' but got '" + tokenType + "'");
+            }
 
+            // Check expiration separately
+            if (jwtService.isTokenExpired(resetPasswordDTO.getToken())) {
+                throw new ExpiredTokenException("Token has expired");
+            }
+
+            // Validate token
+            if (!jwtService.validateToken(resetPasswordDTO.getToken(), "forgot", email)) {
+                throw new InvalidTokenException("Token is not valid");
+            }
+
+            // Check if token is in Redis store
+            String tokenKey = "bl_reset_token:" + resetPasswordDTO.getToken();
+            String storedToken = tokenBlacklistService.getStoredToken(tokenKey);
+
+            if (storedToken == null) {
+                throw new InvalidTokenException("Reset token not found or already used");
+            }
+
+            // Get user and reset password
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+            user.setPassword(passwordEncoder.encode(resetPasswordDTO.getPassword()));
+
+            if (user.isLocked()) {
+                user.setLocked(false);
+                user.setInvalidAttemptCount(0);
+            }
+
+            user.setPasswordUpdateDate(LocalDateTime.now());
+            userRepository.save(user);
+
+            // Remove used token
+            redisTemplate.delete(tokenKey);
+
+            return "Password reset successfully";
+
+        } catch (ExpiredJwtException e) {
+            throw new ExpiredTokenException("Token has expired");
+        } catch (MalformedJwtException e) {
+            throw new InvalidTokenException("Malformed token");
+        } catch (io.jsonwebtoken.security.SecurityException e) {
+            throw new InvalidTokenException("Invalid token");
+        } catch (JwtException e) {
+            throw new InvalidTokenException("Invalid token: " + e.getMessage());
+        }
     }
+
+
 }
 

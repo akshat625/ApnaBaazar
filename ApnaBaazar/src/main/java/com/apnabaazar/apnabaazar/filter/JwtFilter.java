@@ -38,8 +38,12 @@ public class JwtFilter  extends OncePerRequestFilter{
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-
-
+//        // Skip filter for refresh token endpoint
+//        if (request.getRequestURI().startsWith("/auth/refresh-token") ||
+//                request.getRequestURI().startsWith("/auth/logout")) {
+//            chain.doFilter(request, response);
+//            return;
+//        }
         String authorizationHeader = request.getHeader("Authorization");
         String username = null;
         String token = null;
@@ -60,11 +64,11 @@ public class JwtFilter  extends OncePerRequestFilter{
             if (username != null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                    if (jwtService.validateToken(token, "access", username)) {
-                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                    }
+                if (jwtService.validateToken(token, "access", username)) {
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
             }
             chain.doFilter(request, response);
         } catch (io.jsonwebtoken.ExpiredJwtException e) {

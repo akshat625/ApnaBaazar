@@ -50,6 +50,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePasswordExpiredException(PasswordExpiredException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
     }
+    @ExceptionHandler(ExpiredTokenException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredTokenException(ExpiredTokenException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.GONE);
+    }
 
     @ExceptionHandler(UserNotActiveException.class)
     public ResponseEntity<ErrorResponse> handleUserNotActiveException(UserNotActiveException e) {
@@ -75,6 +79,17 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(),status.value(),status.getReasonPhrase(),message);
         return new ResponseEntity<>(errorResponse, status);
     }
+
+    @ExceptionHandler(EmailSendingException.class)
+    public ResponseEntity<ErrorResponse> handleEmailSendingException(EmailSendingException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleRoleNotFoundException(RoleNotFoundException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
 
 
 }
