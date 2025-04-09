@@ -71,4 +71,19 @@ public class AdminService {
 
         return ResponseEntity.ok(new GenericResponseDTO(true, "Seller account activated successfully."));
     }
+
+    public ResponseEntity<GenericResponseDTO> deActivateCustomer(String id) throws MessagingException {
+
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Customer not found with this ID."));
+        if (!customer.isActive()) {
+            return ResponseEntity.ok(new GenericResponseDTO(true, "Customer is already deactivate."));
+        }
+        customer.setActive(false);
+        customerRepository.save(customer);
+        emailService.sendAccountDeactivationEmail(customer.getEmail(),"Account Deactivated");
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Account deactivated successfully."));
+    }
+
+
 }
