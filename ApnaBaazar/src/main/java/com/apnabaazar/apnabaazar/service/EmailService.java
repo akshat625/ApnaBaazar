@@ -111,5 +111,18 @@ public class EmailService {
     }
 
 
+    public void sendAccountDeactivationEmail(String to, String subject) throws MessagingException {
+        MimeMessage message = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
+        String emailContent = String.format(
+                "<h3>Account Locked</h3>" +
+                        "<p>Your Account has been Deactivated. Contact with admin.</p>"
+        );
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(emailContent, true);
+
+        emailSender.send(message);
+    }
 }
