@@ -1,14 +1,14 @@
 package com.apnabaazar.apnabaazar.controller;
 import com.apnabaazar.apnabaazar.mapper.Mapper;
 import com.apnabaazar.apnabaazar.model.dto.CustomerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.service.AdminService;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -38,9 +38,14 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int pageOffset,
             @RequestParam(defaultValue = "id") String sort
     ) {
-
         return ResponseEntity.ok(adminService.getSellers(pageSize, pageOffset, sort));
     }
+
+    @PutMapping("/activate/customer")
+    public ResponseEntity<GenericResponseDTO> activateCustomer(@RequestParam String id) throws MessagingException {
+        return adminService.activateCustomer(id);
+    }
+
 
 
 
