@@ -46,6 +46,11 @@ public class AdminController {
         return adminService.activateCustomer(id);
     }
 
+    @PutMapping("/activate/seller")
+    public ResponseEntity<GenericResponseDTO> activateSeller(@RequestParam String id) throws MessagingException {
+        return adminService.activateSeller(id);
+    }
+
 
 
 

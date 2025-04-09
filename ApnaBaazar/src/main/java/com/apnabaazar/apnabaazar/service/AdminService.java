@@ -57,4 +57,18 @@ public class AdminService {
 
         return ResponseEntity.ok(new GenericResponseDTO(true, "Customer account activated successfully."));
     }
+
+    public ResponseEntity<GenericResponseDTO> activateSeller(String id) throws MessagingException {
+        Seller seller = sellerRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Seller not found with this ID."));
+
+        if (seller.isActive()) {
+            return ResponseEntity.ok(new GenericResponseDTO(true, "Seller is already active."));
+        }
+        seller.setActive(true);
+        sellerRepository.save(seller);
+        emailService.sendVerificationSuccessEmail(seller.getEmail(),"Account Activated");
+
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Seller account activated successfully."));
+    }
 }
