@@ -45,7 +45,10 @@ logging:
         web: debug
         security: debug
 
-
+apnabaazar:
+  admin:
+    email: akshatsrivastava625@gmail.com
+    password: 0105T@@t
 
 
 

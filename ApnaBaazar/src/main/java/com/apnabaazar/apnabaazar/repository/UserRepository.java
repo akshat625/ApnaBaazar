@@ -14,11 +14,14 @@ import java.util.Set;
 public interface UserRepository extends JpaRepository<User, String> {
 
     Optional<User> findByEmail(String email);
+    
+    Optional<User> findByRoles(Set<Role> roles);
 
     Optional<User> findByEmailAndRoles(String email, Set<Role> roles);
 
     @Query("select COUNT(*) > 0 from Seller where LOWER(companyName) = LOWER(:companyName)")
     boolean existsByCompanyName(@Param("companyName") String companyName);
+
 
 
     @Query("select COUNT(*) > 0 from Seller where gst = :gst")
