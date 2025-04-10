@@ -35,7 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/address/**").authenticated()
                         .requestMatchers("/actuators/**").authenticated()
-                        .requestMatchers("/swagger-ui.html").authenticated()
+                        .requestMatchers("/swagger-ui.html").permitAll()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

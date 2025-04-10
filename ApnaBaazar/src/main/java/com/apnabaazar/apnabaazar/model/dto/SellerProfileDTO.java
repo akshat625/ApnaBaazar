@@ -18,5 +18,8 @@ public class SellerProfileDTO {
     private String companyName;
     private String gstin;
 
+    private String profileImageUrl;
+
+
     private AddressDTO sellerAddress;
 }

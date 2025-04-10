@@ -16,7 +16,7 @@ public class SellerMapper {
     private final AddressRepository addressRepository;
 
 
-    public static ResponseEntity<SellerProfileDTO> toSellerProfileDTO(Seller seller) {
+    public static ResponseEntity<SellerProfileDTO> toSellerProfileDTO(Seller seller, String imageUrl) {
         AddressDTO sellerAddress = seller.getAddresses().stream().findFirst()
                 .map(address -> new AddressDTO(
                         address.getAddressLine(),
@@ -34,6 +34,7 @@ public class SellerMapper {
                 .companyName(seller.getCompanyName())
                 .gstin(seller.getGstin())
                 .sellerAddress(sellerAddress)
+                .profileImageUrl(imageUrl)
                 .build();
 
         return ResponseEntity.ok(sellerProfile);
