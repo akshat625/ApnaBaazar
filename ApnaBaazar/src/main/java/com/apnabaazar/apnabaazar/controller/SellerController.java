@@ -38,12 +38,4 @@ public class SellerController {
         return ResponseEntity.ok("Image uploaded at key : "+key);
     }
 
-    @GetMapping("/profile-image")
-    public ResponseEntity<byte[]> downloadSellerImage(@RequestParam String extension,
-                                                      @AuthenticationPrincipal UserDetails user) {
-        byte[] image = s3Service.downloadSellerProfileImage(user.getUsername(), extension);
-        return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG)
-                .body(image);
-    }
 }
