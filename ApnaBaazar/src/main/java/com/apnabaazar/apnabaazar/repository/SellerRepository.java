@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SellerRepository extends JpaRepository<Seller, String> {
 
     Page<Seller> findByEmailContainingIgnoreCase(String email, Pageable pageable);
+
+    Seller findByEmail(String email);
 }

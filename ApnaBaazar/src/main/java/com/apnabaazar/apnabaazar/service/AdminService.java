@@ -7,7 +7,6 @@ import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
-import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.CustomerRepository;
 import com.apnabaazar.apnabaazar.repository.SellerRepository;
 import jakarta.mail.MessagingException;
@@ -18,10 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service

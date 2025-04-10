@@ -1,10 +1,8 @@
 package com.apnabaazar.apnabaazar.model.users;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -12,6 +10,7 @@ import java.util.UUID;
 @Table(name = "addresses")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Address {
@@ -32,4 +31,6 @@ public class Address {
 
     private String label;
 
+    public Address(String addressLine, String city, String state, String country, String zipCode) {
+    }
 }

@@ -170,7 +170,7 @@ public class AuthService {
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             handleFailedLoginAttempt(user);
-            throw new InvalidCredentialsException("Invalid password");
+            throw new InvalidCredentialsException("Invalid password. You have "+ (3-user.getInvalidAttemptCount())+ " attempts left.");
         }
 
 
@@ -200,6 +200,7 @@ public class AuthService {
     private void handleFailedLoginAttempt(User user) {
         user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
         if (user.getInvalidAttemptCount() >= 3) {
+
             user.setLocked(true);
             try {
                 emailService.sendAccountLockedEmail(user.getEmail(), "Account Locked");
@@ -289,7 +290,7 @@ public class AuthService {
         if (userRepository.findByEmail(input.getEmail()).isPresent()) {
             throw new EmailAlreadyInUseException("Email already in use");
         }
-        if (userRepository.existsByGst(input.getGst())) {
+        if (userRepository.existsByGstin(input.getGstin())) {
             throw new GstAlreadyInUseException("Gst already in use");
         }
         if (userRepository.existsByCompanyName(input.getCompanyName())) {
@@ -303,7 +304,7 @@ public class AuthService {
         seller.setEmail(input.getEmail());
         seller.setPassword(passwordEncoder.encode(input.getPassword()));
         seller.setCompanyName(input.getCompanyName());
-        seller.setGst(input.getGst());
+        seller.setGstin(input.getGstin());
         seller.setCompanyContact(input.getCompanyContact());
         if (input.getMiddleName() != null && !input.getMiddleName().isEmpty()) {
             seller.setMiddleName(input.getMiddleName());

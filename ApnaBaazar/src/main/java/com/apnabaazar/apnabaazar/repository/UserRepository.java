@@ -24,8 +24,8 @@ public interface UserRepository extends JpaRepository<User, String> {
 
 
 
-    @Query("select COUNT(*) > 0 from Seller where gst = :gst")
-    boolean existsByGst(@Param("gst") String gst);
+    @Query("select COUNT(*) > 0 from Seller where gstin = :gstin")
+    boolean existsByGstin(@Param("gstin") String gstin);
 
 
 }

@@ -19,7 +19,7 @@ import java.util.Set;
 
 public class Seller extends User {
 
-    private String gst;
+    private String gstin;
 
     private String companyContact;
 
