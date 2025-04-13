@@ -1,16 +1,20 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.CustomerMapper;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Customer;
+import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +103,23 @@ public class CustomerService {
         }
         addressRepository.save(address);
         log.info("Address [ID: {}] updated successfully for customer: {}", addressId, email);
+    }
+
+    public void updateCustomerPassword(UserPrincipal userPrincipal, UpdatePasswordDTO updatePasswordDTO) {
+        String email = userPrincipal.getUsername();
+        log.info("Updating password for customer: {}", email);
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
+        if(!passwordEncoder.matches(updatePasswordDTO.getOldPassword(),customer.getPassword()))
+            throw new PasswordMismatchException("Old Password is incorrect.");
+        if(!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
+            throw new PasswordMismatchException("New password and confirm password do not match.");
+        }
+
+        customer.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
+        customerRepository.save(customer);
+
+        log.info("Customer password updated successfully for: {}", email);
     }
 }
 

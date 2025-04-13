@@ -4,6 +4,7 @@ import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
@@ -66,5 +67,11 @@ public class CustomerController {
     public ResponseEntity<GenericResponseDTO> updateCustomerAddress(UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) {
         customerService.updateCustomerAddress(userPrincipal, addressId, addressUpdateDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<GenericResponseDTO> updateCustomerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
+        customerService.updateCustomerPassword(userPrincipal, updatePasswordDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Password updated successfully."));
     }
 }
