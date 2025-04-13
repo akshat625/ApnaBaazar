@@ -1,7 +1,7 @@
 package com.apnabaazar.apnabaazar.mapper;
 
-import com.apnabaazar.apnabaazar.model.dto.CustomerResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.SellerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 

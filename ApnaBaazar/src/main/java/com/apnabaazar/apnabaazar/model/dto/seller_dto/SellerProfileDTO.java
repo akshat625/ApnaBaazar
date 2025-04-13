@@ -1,6 +1,6 @@
-package com.apnabaazar.apnabaazar.model.dto;
+package com.apnabaazar.apnabaazar.model.dto.seller_dto;
 
-import com.apnabaazar.apnabaazar.model.users.Address;
+import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import lombok.*;
 
 
@@ -19,7 +19,5 @@ public class SellerProfileDTO {
     private String gstin;
 
     private String profileImageUrl;
-
-
     private AddressDTO sellerAddress;
 }

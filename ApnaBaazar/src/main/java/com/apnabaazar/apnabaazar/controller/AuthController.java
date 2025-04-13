@@ -1,12 +1,10 @@
 package com.apnabaazar.apnabaazar.controller;
 
-import com.apnabaazar.apnabaazar.exceptions.RoleNotFoundException;
 import com.apnabaazar.apnabaazar.model.dto.*;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerDTO;
 import com.apnabaazar.apnabaazar.service.AuthService;
-import com.apnabaazar.apnabaazar.service.CustomerService;
-import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.mail.MessagingException;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +25,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/customer")
-    public ResponseEntity<String> registerCustomer(@RequestBody  CustomerDTO customerDTO) {
+    public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) {
         authService.customerSignup
                 (customerDTO);
         return ResponseEntity.ok("Customer registered successfully!");

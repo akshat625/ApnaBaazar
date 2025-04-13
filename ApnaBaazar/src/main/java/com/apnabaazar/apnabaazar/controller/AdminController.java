@@ -1,8 +1,7 @@
 package com.apnabaazar.apnabaazar.controller;
-import com.apnabaazar.apnabaazar.mapper.Mapper;
-import com.apnabaazar.apnabaazar.model.dto.CustomerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.SellerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.service.AdminService;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;

@@ -1,8 +1,7 @@
 package com.apnabaazar.apnabaazar.mapper;
 
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
-import com.apnabaazar.apnabaazar.model.dto.SellerProfileDTO;
-import com.apnabaazar.apnabaazar.model.users.Address;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.AddressRepository;
 import lombok.RequiredArgsConstructor;

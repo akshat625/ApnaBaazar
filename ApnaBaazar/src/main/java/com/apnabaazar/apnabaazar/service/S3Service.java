@@ -2,6 +2,7 @@ package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.exceptions.InvalidImageFormatException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.io.IOException;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class S3Service {
@@ -25,7 +27,7 @@ public class S3Service {
     @Value("${aws.region.static}")
     private String region;
 
-    public static final String BASE_PATH = "users/";
+    private static final String BASE_PATH = "users/";
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".png", ".jpg", ".jpeg", ".bmp");
 
@@ -33,12 +35,14 @@ public class S3Service {
         String extension = getExtension(file.getOriginalFilename());
         String key = BASE_PATH + username + extension;
 
-        // Delete previous versions (with any supported extension)
-        for (String ext : ALLOWED_EXTENSIONS) {
-            String oldKey = BASE_PATH + username + ext;
-            if (!oldKey.equals(key) && doesObjectExist(oldKey)) {
-                s3Client.deleteObject(builder -> builder.bucket(bucket).key(oldKey));
-            }
+        log.info("Uploading new profile image for user: {} with key: {}", username, key);
+
+        // Delete any existing profile image
+        boolean deleted = deleteSellerProfileImage(username);
+        if (deleted) {
+            log.info("Previous profile image deleted for user: {}", username);
+        } else {
+            log.info("No existing profile image found for user: {}", username);
         }
 
         PutObjectRequest request = PutObjectRequest.builder()
@@ -49,6 +53,7 @@ public class S3Service {
                 .build();
 
         s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
+        log.info("Successfully uploaded image to S3 with key: {}", key);
 
         return key;
     }
@@ -60,8 +65,10 @@ public class S3Service {
                     .key(key)
                     .build();
             s3Client.getObject(request);
+            log.debug("Object exists: {}", key);
             return true;
         } catch (Exception e) {
+            log.debug("Object not found: {}", key);
             return false;
         }
     }
@@ -70,10 +77,27 @@ public class S3Service {
         for (String ext : ALLOWED_EXTENSIONS) {
             String key = BASE_PATH + username + ext;
             if (doesObjectExist(key)) {
-                return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
+                String imageUrl = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
+                log.info("Found profile image for {}: {}", username, imageUrl);
+                return imageUrl;
             }
         }
+        log.warn("No profile image found for {}, using default image", username);
         return defaultImageUrl;
+    }
+
+    public boolean deleteSellerProfileImage(String username) {
+        log.info("Attempting to delete profile image for user: {}", username);
+        for (String ext : ALLOWED_EXTENSIONS) {
+            String key = BASE_PATH + username + ext;
+            if (doesObjectExist(key)) {
+                s3Client.deleteObject(builder -> builder.bucket(bucket).key(key));
+                log.info("Deleted image with key: {}", key);
+                return true;
+            }
+        }
+        log.warn("No image found for user: {}", username);
+        return false;
     }
 
     public String getExtension(String filename) {

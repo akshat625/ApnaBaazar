@@ -1,5 +1,6 @@
-package com.apnabaazar.apnabaazar.model.dto;
+package com.apnabaazar.apnabaazar.model.dto.customer_dto;
 
+import com.apnabaazar.apnabaazar.model.dto.UserDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
@@ -7,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CustomerDTO extends  UserDTO{
+public class CustomerDTO extends UserDTO {
 
     @NotBlank(message = "Contact number is required")
     @Pattern(

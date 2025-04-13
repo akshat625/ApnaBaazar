@@ -1,5 +1,6 @@
-package com.apnabaazar.apnabaazar.model.dto;
+package com.apnabaazar.apnabaazar.model.dto.seller_dto;
 
+import com.apnabaazar.apnabaazar.model.dto.UserDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
@@ -7,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SellerDTO extends UserDTO{
+public class SellerDTO extends UserDTO {
 
     @NotBlank(message = "GSTIN is required")
     @Pattern(

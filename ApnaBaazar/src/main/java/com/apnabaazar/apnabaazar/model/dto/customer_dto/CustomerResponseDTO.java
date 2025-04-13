@@ -1,4 +1,4 @@
-package com.apnabaazar.apnabaazar.model.dto;
+package com.apnabaazar.apnabaazar.model.dto.customer_dto;
 
 import lombok.*;
 

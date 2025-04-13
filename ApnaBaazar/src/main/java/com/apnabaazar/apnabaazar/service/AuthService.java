@@ -2,6 +2,8 @@ package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.model.dto.*;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerDTO;
 import com.apnabaazar.apnabaazar.model.token.AuthToken;
 import com.apnabaazar.apnabaazar.enums.TokenType;
 import com.apnabaazar.apnabaazar.model.users.*;
@@ -17,7 +19,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.SignatureException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Set;

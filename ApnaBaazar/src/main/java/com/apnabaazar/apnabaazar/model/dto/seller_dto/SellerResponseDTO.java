@@ -1,6 +1,5 @@
-package com.apnabaazar.apnabaazar.model.dto;
+package com.apnabaazar.apnabaazar.model.dto.seller_dto;
 
-import com.apnabaazar.apnabaazar.model.users.Customer;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

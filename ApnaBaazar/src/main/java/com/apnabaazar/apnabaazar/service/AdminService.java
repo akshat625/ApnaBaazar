@@ -2,9 +2,9 @@ package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.exceptions.UserNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.Mapper;
-import com.apnabaazar.apnabaazar.model.dto.CustomerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.SellerResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.CustomerRepository;
