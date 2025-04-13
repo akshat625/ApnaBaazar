@@ -65,6 +65,7 @@ aws:
   s3:
     bucket: apna-baazar-bucket
     default-seller-image: https://apna-baazar-bucket.s3.amazonaws.com/users/seller_default.jpg
+    default-customer-image: https://apna-baazar-bucket.s3.amazonaws.com/users/seller_default.jpg
 
 
 

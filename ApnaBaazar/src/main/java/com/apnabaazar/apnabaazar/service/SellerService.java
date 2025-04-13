@@ -55,7 +55,7 @@ public class SellerService {
             String imageUrl = s3Service.getProfileImageUrl(email, defaultSellerImage);
             log.info("Seller profile image URL resolved: {}", imageUrl);
 
-            return SellerMapper.toSellerProfileDTO(seller, imageUrl);
+            return ResponseEntity.ok(SellerMapper.toSellerProfileDTO(seller,imageUrl));
         } catch (Exception e) {
             log.error("Error retrieving seller profile for {}: {}", email, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();

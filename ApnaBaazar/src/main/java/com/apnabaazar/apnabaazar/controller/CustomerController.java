@@ -2,6 +2,7 @@ package com.apnabaazar.apnabaazar.controller;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
@@ -24,14 +25,20 @@ public class CustomerController {
     private final S3Service s3Service;
 
     @GetMapping("/hello")
-    public String testCustomer(){
+    public String testCustomer() {
         return "Hello World! from Customer";
     }
 
+    @GetMapping("/profile")
+    public ResponseEntity<CustomerProfileDTO> getCustomerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return customerService.getCustomerProfile(userPrincipal);
+    }
+
+
     @PostMapping("/upload/profile-image")
     public ResponseEntity<GenericResponseDTO> uploadCustomerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
-        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(),file);
-        return ResponseEntity.ok(new GenericResponseDTO(true,"Image uploaded at key : "+key));
+        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(), file);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Image uploaded at key : " + key));
 
     }
 

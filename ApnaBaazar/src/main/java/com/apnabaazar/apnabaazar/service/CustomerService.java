@@ -1,32 +1,61 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.mapper.CustomerMapper;
+import com.apnabaazar.apnabaazar.mapper.SellerMapper;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
+import com.apnabaazar.apnabaazar.model.users.Customer;
+import com.apnabaazar.apnabaazar.repository.CustomerRepository;
 import com.apnabaazar.apnabaazar.repository.RoleRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
 import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
+@RequiredArgsConstructor
 @Service
 public class CustomerService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final S3Service s3Service;
+    private final EmailService emailService;
+    private final JwtService jwtService;
+    private final AuthTokenRepository authTokenRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
+    @Value("${aws.s3.default-customer-image}")
+    private String defaultCustomerImage;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public ResponseEntity<CustomerProfileDTO> getCustomerProfile(UserPrincipal userPrincipal) {
 
-    @Autowired
-    private EmailService emailService;
+        String email = userPrincipal.getUsername();
+        log.info("Fetching profile for customer: {}", email);
 
-    @Autowired
-    private JwtService jwtService;
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.warn("Customer not found with email: {}", email);
+                    return new UsernameNotFoundException("Customer not found");
+                });
 
-    @Autowired
-    private AuthTokenRepository authTokenRepository;
+        try{
+            String imageUrl = s3Service.getProfileImageUrl(email,defaultCustomerImage);
+            log.info("Customer profile image URL resolved: {}", imageUrl);
+            return ResponseEntity.ok(CustomerMapper.toCustomerProfileDTO(customer,imageUrl));
+        }
+        catch (Exception e){
+            log.error("Error retrieving customer profile for {}: {}", email, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }
 
 
