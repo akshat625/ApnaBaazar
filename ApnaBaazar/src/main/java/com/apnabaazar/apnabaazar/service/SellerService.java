@@ -1,6 +1,7 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
@@ -72,5 +73,18 @@ public class SellerService {
         log.info("Seller profile updated successfully for: {}", email);
     }
 
-
+    public void updateSellerAddress(String addressId, AddressDTO addressDTO) {
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
+        log.info("Updating seller address for seller: {}", address);
+        if (addressDTO != null){
+            address.setAddressLine(getUpdatedValue(addressDTO.getAddressLine(), address.getAddressLine()));
+            address.setCity(getUpdatedValue(addressDTO.getCity(), address.getCity()));
+            address.setState(getUpdatedValue(addressDTO.getState(), address.getState()));
+            address.setZipCode(getUpdatedValue(addressDTO.getZipCode(), address.getZipCode()));
+            address.setCountry(getUpdatedValue(addressDTO.getCountry(), address.getCountry()));
+        }
+        addressRepository.save(address);
+        log.info("Address updated successfully for seller: {}", address);
+    }
 }

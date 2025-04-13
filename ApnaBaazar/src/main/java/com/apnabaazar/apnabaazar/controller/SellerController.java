@@ -58,6 +58,11 @@ public class SellerController {
         return ResponseEntity.ok(new GenericResponseDTO(true, "Profile updated successfully."));
     }
 
+    @PutMapping("/address/{addressId}")
+    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@PathVariable String addressId, @RequestBody AddressDTO addressDTO) {
+        sellerService.updateSellerAddress(addressId,addressDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
+    }
 
 
 
