@@ -2,11 +2,13 @@ package com.apnabaazar.apnabaazar.controller;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
+import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +19,7 @@ import java.io.IOException;
 
 @RequiredArgsConstructor
 @RestController
+
 @RequestMapping("/seller")
 public class SellerController {
 
@@ -59,8 +62,8 @@ public class SellerController {
     }
 
     @PutMapping("/address/{addressId}")
-    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@PathVariable String addressId, @RequestBody AddressDTO addressDTO) {
-        sellerService.updateSellerAddress(addressId,addressDTO);
+    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@PathVariable String addressId, @Valid  @RequestBody AddressUpdateDTO addressUpdateDTO) {
+        sellerService.updateSellerAddress(addressId,addressUpdateDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
     }
 
