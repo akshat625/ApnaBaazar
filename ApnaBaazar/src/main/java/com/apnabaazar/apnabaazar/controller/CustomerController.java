@@ -1,6 +1,7 @@
 package com.apnabaazar.apnabaazar.controller;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,6 +34,11 @@ public class CustomerController {
     @GetMapping("/profile")
     public ResponseEntity<CustomerProfileDTO> getCustomerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return customerService.getCustomerProfile(userPrincipal);
+    }
+
+    @GetMapping("/addresses")
+    public ResponseEntity<List<AddressDTO>> getCustomerAddresses(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return customerService.getCustomerAddresses(userPrincipal);
     }
 
 

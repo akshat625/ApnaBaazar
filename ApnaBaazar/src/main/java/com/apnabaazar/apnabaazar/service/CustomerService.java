@@ -3,13 +3,12 @@ package com.apnabaazar.apnabaazar.service;
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.mapper.CustomerMapper;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
+import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
+import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Customer;
-import com.apnabaazar.apnabaazar.repository.CustomerRepository;
-import com.apnabaazar.apnabaazar.repository.RoleRepository;
-import com.apnabaazar.apnabaazar.repository.UserRepository;
-import com.apnabaazar.apnabaazar.repository.AuthTokenRepository;
+import com.apnabaazar.apnabaazar.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class CustomerService {
     private final EmailService emailService;
     private final JwtService jwtService;
     private final AuthTokenRepository authTokenRepository;
+    private final AddressRepository addressRepository;
 
     @Value("${aws.s3.default-customer-image}")
     private String defaultCustomerImage;
@@ -55,6 +58,24 @@ public class CustomerService {
             log.error("Error retrieving customer profile for {}: {}", email, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    public ResponseEntity<List<AddressDTO>> getCustomerAddresses(UserPrincipal userPrincipal) {
+        String email = userPrincipal.getUsername();
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.warn("Customer not found with email: {}", email);
+                    return new UsernameNotFoundException("Customer not found");
+                });
+
+        log.info("Fetching addresses of Customer : {}", email);
+        Set<Address> customerAddresses = customer.getAddresses();
+        if (customerAddresses.isEmpty()) {
+            log.info("No addresses found for customer: {}", email);
+        }
+
+        return ResponseEntity.ok(CustomerMapper.toAddressDTO(customerAddresses));
+
     }
 }
 
