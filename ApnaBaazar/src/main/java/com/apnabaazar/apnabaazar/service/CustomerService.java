@@ -1,9 +1,11 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.CustomerMapper;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
+import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
@@ -75,7 +77,28 @@ public class CustomerService {
         }
 
         return ResponseEntity.ok(CustomerMapper.toAddressDTO(customerAddresses));
+    }
 
+    private String getUpdatedValue(String newValue, String oldValue) {
+        return (newValue != null && !newValue.isBlank()) ? newValue : oldValue;
+    }
+
+    public void updateCustomerAddress(UserPrincipal userPrincipal,String addressId, AddressUpdateDTO addressUpdateDTO) {
+        String email = userPrincipal.getUsername();
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
+        log.info("Updating address [ID: {}] for customer: {}", addressId, email);
+
+        if (addressUpdateDTO != null){
+            address.setAddressLine(getUpdatedValue(addressUpdateDTO.getAddressLine(), address.getAddressLine()));
+            address.setCity(getUpdatedValue(addressUpdateDTO.getCity(), address.getCity()));
+            address.setState(getUpdatedValue(addressUpdateDTO.getState(), address.getState()));
+            address.setZipCode(getUpdatedValue(addressUpdateDTO.getZipCode(), address.getZipCode()));
+            address.setCountry(getUpdatedValue(addressUpdateDTO.getCountry(), address.getCountry()));
+            address.setLabel(getUpdatedValue(addressUpdateDTO.getLabel(), address.getLabel()));
+        }
+        addressRepository.save(address);
+        log.info("Address [ID: {}] updated successfully for customer: {}", addressId, email);
     }
 }
 

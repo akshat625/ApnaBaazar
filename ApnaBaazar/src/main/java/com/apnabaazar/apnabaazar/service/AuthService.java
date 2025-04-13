@@ -14,6 +14,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import jakarta.mail.MessagingException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,29 +26,19 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@RequiredArgsConstructor
 @Service
 public class AuthService {
 
     private final TokenBlacklistService tokenBlacklistService;
     private final RedisTemplate<String, String> redisTemplate;
-    private UserRepository userRepository;
-    private RoleRepository roleRepository;
-    private PasswordEncoder passwordEncoder;
-    private EmailService emailService;
-    private JwtService jwtService;
-    private AuthTokenRepository authTokenRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final JwtService jwtService;
+    private final AuthTokenRepository authTokenRepository;
 
-    @Autowired
-    public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, EmailService emailService, JwtService jwtService, AuthTokenRepository authTokenRepository, TokenBlacklistService tokenBlacklistService, RedisTemplate<String, String> redisTemplate) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
-        this.jwtService = jwtService;
-        this.authTokenRepository = authTokenRepository;
-        this.tokenBlacklistService = tokenBlacklistService;
-        this.redisTemplate = redisTemplate;
-    }
 
     public String customerSignup(CustomerDTO input) {
         if (!input.getPassword().equals(input.getConfirmPassword())) {

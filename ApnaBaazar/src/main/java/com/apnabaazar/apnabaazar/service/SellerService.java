@@ -82,10 +82,12 @@ public class SellerService {
         log.info("Seller profile updated successfully for: {}", email);
     }
 
-    public void updateSellerAddress(String addressId, AddressUpdateDTO addressUpdateDTO) {
+    public void updateSellerAddress(UserPrincipal userPrincipal,String addressId, AddressUpdateDTO addressUpdateDTO) {
+        String email = userPrincipal.getUsername();
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
-        log.info("Updating seller address for seller: {}", address);
+        log.info("Updating address [ID: {}] for seller: {}", addressId, email);
+
         if (addressUpdateDTO != null){
             address.setAddressLine(getUpdatedValue(addressUpdateDTO.getAddressLine(), address.getAddressLine()));
             address.setCity(getUpdatedValue(addressUpdateDTO.getCity(), address.getCity()));
@@ -94,7 +96,7 @@ public class SellerService {
             address.setCountry(getUpdatedValue(addressUpdateDTO.getCountry(), address.getCountry()));
         }
         addressRepository.save(address);
-        log.info("Address updated successfully for seller: {}", address);
+        log.info("Address [ID: {}] updated successfully for seller: {}", addressId, email);
     }
 
     public void updateSellerPassword(UserPrincipal userPrincipal, UpdatePasswordDTO updatePasswordDTO) {

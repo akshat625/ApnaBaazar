@@ -28,4 +28,7 @@ public class AddressUpdateDTO {
     @Pattern(regexp = "^[0-9]{5,10}$", message = "Zip code must be 5 to 10 digits long and contain only numbers.")
     private String zipCode;
 
+    @Size(max = 50, message = "Label name must not exceed 20 characters.")
+    private String label;
+
 }
