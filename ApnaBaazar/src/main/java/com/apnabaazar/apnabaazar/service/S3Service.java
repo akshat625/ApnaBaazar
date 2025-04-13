@@ -31,14 +31,14 @@ public class S3Service {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(".png", ".jpg", ".jpeg", ".bmp");
 
-    public String uploadSellerProfileImage(String username, MultipartFile file) throws IOException {
+    public String uploadProfileImage(String username, MultipartFile file) throws IOException {
         String extension = getExtension(file.getOriginalFilename());
         String key = BASE_PATH + username + extension;
 
         log.info("Uploading new profile image for user: {} with key: {}", username, key);
 
         // Delete any existing profile image
-        boolean deleted = deleteSellerProfileImage(username);
+        boolean deleted = deleteProfileImage(username);
         if (deleted) {
             log.info("Previous profile image deleted for user: {}", username);
         } else {
@@ -73,7 +73,7 @@ public class S3Service {
         }
     }
 
-    public String getSellerProfileImageUrl(String username, String defaultImageUrl) {
+    public String getProfileImageUrl(String username, String defaultImageUrl) {
         for (String ext : ALLOWED_EXTENSIONS) {
             String key = BASE_PATH + username + ext;
             if (doesObjectExist(key)) {
@@ -86,7 +86,7 @@ public class S3Service {
         return defaultImageUrl;
     }
 
-    public boolean deleteSellerProfileImage(String username) {
+    public boolean deleteProfileImage(String username) {
         log.info("Attempting to delete profile image for user: {}", username);
         for (String ext : ALLOWED_EXTENSIONS) {
             String key = BASE_PATH + username + ext;

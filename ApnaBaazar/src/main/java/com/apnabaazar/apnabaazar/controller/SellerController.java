@@ -4,6 +4,7 @@ import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.S3Service;
@@ -37,16 +38,16 @@ public class SellerController {
     }
 
     @PostMapping("/upload/profile-image")
-    public ResponseEntity<GenericResponseDTO> uploadProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
-        String key = s3Service.uploadSellerProfileImage(userPrincipal.getUsername(),file);
+    public ResponseEntity<GenericResponseDTO> uploadSellerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
+        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(),file);
         return ResponseEntity.ok(new GenericResponseDTO(true,"Image uploaded at key : "+key));
 
     }
 
     @DeleteMapping("/profile/image")
-    public ResponseEntity<GenericResponseDTO> deleteProfileImage(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+    public ResponseEntity<GenericResponseDTO> deleteSellerProfileImage(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         String username = userPrincipal.getUsername();
-        boolean deleted = s3Service.deleteSellerProfileImage(username);
+        boolean deleted = s3Service.deleteProfileImage(username);
         if (deleted) {
             return ResponseEntity.ok(new GenericResponseDTO(true, "Profile image deleted successfully."));
         } else {
@@ -65,6 +66,12 @@ public class SellerController {
     public ResponseEntity<GenericResponseDTO> updateSellerAddress(@PathVariable String addressId, @Valid  @RequestBody AddressUpdateDTO addressUpdateDTO) {
         sellerService.updateSellerAddress(addressId,addressUpdateDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<GenericResponseDTO> updateSellerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
+        sellerService.updateSellerPassword(userPrincipal, updatePasswordDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Password updated successfully."));
     }
 
 

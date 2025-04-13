@@ -23,8 +23,8 @@ public class LoginDTO {
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 15, message = "Password must be between 8 and 15 characters long")
     @Pattern(
-            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&#]{8,20}$",
-    message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, and 1 special character"
+            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
+            message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, 1 special character and be 8–15 characters long."
     )
     private String password;
 }

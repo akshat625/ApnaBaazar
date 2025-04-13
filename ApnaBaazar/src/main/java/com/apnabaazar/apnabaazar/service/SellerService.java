@@ -1,21 +1,27 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Seller;
+import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.AddressRepository;
 import com.apnabaazar.apnabaazar.repository.SellerRepository;
+import com.apnabaazar.apnabaazar.repository.UserRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,10 +31,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class SellerService {
 
+    private final UserRepository userRepository;
     private final SellerRepository sellerRepository;
     private final EmailService emailService;
     private final AddressRepository addressRepository;
     private final S3Service s3Service;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Value("${aws.s3.default-seller-image}")
     private String defaultSellerImage;
@@ -44,7 +52,7 @@ public class SellerService {
                 });
 
         try {
-            String imageUrl = s3Service.getSellerProfileImageUrl(email, defaultSellerImage);
+            String imageUrl = s3Service.getProfileImageUrl(email, defaultSellerImage);
             log.info("Seller profile image URL resolved: {}", imageUrl);
 
             return SellerMapper.toSellerProfileDTO(seller, imageUrl);
@@ -87,5 +95,22 @@ public class SellerService {
         }
         addressRepository.save(address);
         log.info("Address updated successfully for seller: {}", address);
+    }
+
+    public void updateSellerPassword(UserPrincipal userPrincipal, UpdatePasswordDTO updatePasswordDTO) {
+        String email = userPrincipal.getUsername();
+        log.info("Updating seller password for seller: {}", email);
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Seller not found"));
+        if(!passwordEncoder.matches(updatePasswordDTO.getOldPassword(),seller.getPassword()))
+            throw new PasswordMismatchException("Old Password is incorrect.");
+        if(!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
+            throw new PasswordMismatchException("New password and confirm password do not match.");
+        }
+
+        seller.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
+        sellerRepository.save(seller);
+
+        log.info("Seller password updated successfully for: {}", email);
     }
 }
