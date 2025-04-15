@@ -24,7 +24,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +34,7 @@ import java.util.Set;
 @Slf4j
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class CustomerService {
 
     private final UserRepository userRepository;
@@ -57,12 +60,11 @@ public class CustomerService {
                     return new UsernameNotFoundException("Customer not found");
                 });
 
-        try{
-            String imageUrl = s3Service.getProfileImageUrl(email,defaultCustomerImage);
+        try {
+            String imageUrl = s3Service.getProfileImageUrl(email, defaultCustomerImage);
             log.info("Customer profile image URL resolved: {}", imageUrl);
-            return ResponseEntity.ok(CustomerMapper.toCustomerProfileDTO(customer,imageUrl));
-        }
-        catch (Exception e){
+            return ResponseEntity.ok(CustomerMapper.toCustomerProfileDTO(customer, imageUrl));
+        } catch (Exception e) {
             log.error("Error retrieving customer profile for {}: {}", email, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
@@ -89,13 +91,25 @@ public class CustomerService {
         return (newValue != null && !newValue.isBlank()) ? newValue : oldValue;
     }
 
-    public void updateCustomerAddress(UserPrincipal userPrincipal,String addressId, AddressUpdateDTO addressUpdateDTO) {
+    public void updateCustomerAddress(UserPrincipal userPrincipal, String addressId, AddressUpdateDTO addressUpdateDTO) throws AccessDeniedException {
         String email = userPrincipal.getUsername();
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
+
+        boolean ownsAddress = customer.getAddresses().stream()
+                .anyMatch(address -> address.getId().equals(addressId));
+
+        if (!ownsAddress) {
+            log.warn("Address [ID: {}] does not belong to customer: {}", addressId, email);
+            throw new AccessDeniedException("You are not authorized to update this address.");
+        }
+
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with ID: " + addressId));
         log.info("Updating address [ID: {}] for customer: {}", addressId, email);
 
-        if (addressUpdateDTO != null){
+
+        if (addressUpdateDTO != null) {
             address.setAddressLine(getUpdatedValue(addressUpdateDTO.getAddressLine(), address.getAddressLine()));
             address.setCity(getUpdatedValue(addressUpdateDTO.getCity(), address.getCity()));
             address.setState(getUpdatedValue(addressUpdateDTO.getState(), address.getState()));
@@ -113,9 +127,9 @@ public class CustomerService {
         log.info("Updating password for customer: {}", email);
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
-        if(!passwordEncoder.matches(updatePasswordDTO.getOldPassword(),customer.getPassword()))
+        if (!passwordEncoder.matches(updatePasswordDTO.getOldPassword(), customer.getPassword()))
             throw new PasswordMismatchException("Old Password is incorrect.");
-        if(!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
+        if (!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
             throw new PasswordMismatchException("New password and confirm password do not match.");
         }
 
@@ -128,10 +142,10 @@ public class CustomerService {
 
     public void addCustomerAddress(UserPrincipal userPrincipal, AddressDTO addressDTO) {
         String email = userPrincipal.getUsername();
-        log.info("Adding a new Customer Address for customer: {}", email);
+        log.info("Attempting to add a new Address for customer: {}", email);
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
-        Address newAddress = CustomerMapper.toAddressDTO(addressDTO);
+        Address newAddress = CustomerMapper.toAddress(addressDTO);
         log.info("Adding a new Address for customer: {}", email);
         customer.getAddresses().add(newAddress);
         customerRepository.save(customer);
@@ -141,17 +155,17 @@ public class CustomerService {
         String email = userPrincipal.getUsername();
         log.info("Deleting address [ID: {}] for customer: {}", addressId, email);
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with ID: " + addressId));
         addressRepository.delete(address);
-        log.info("Address deleted successfully for customer: {}", email);
+        log.info("Address [ID: {}] soft deleted successfully for customer: {}", addressId, email);
     }
 
     public void updateCustomerProfile(UserPrincipal userPrincipal, ProfileUpdateDTO customerProfileUpdateDTO) {
         String email = userPrincipal.getUsername();
         log.info("Updating profile for customer: {}", email);
         Customer customer = customerRepository.findByEmail(email)
-                .orElseThrow(()-> new UsernameNotFoundException("Customer not found"));
-        if (customerProfileUpdateDTO != null){
+                .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
+        if (customerProfileUpdateDTO != null) {
             customer.setFirstName(getUpdatedValue(customerProfileUpdateDTO.getFirstName(), customer.getFirstName()));
             customer.setMiddleName(getUpdatedValue(customerProfileUpdateDTO.getMiddleName(), customer.getMiddleName()));
             customer.setLastName(getUpdatedValue(customerProfileUpdateDTO.getLastName(), customer.getLastName()));

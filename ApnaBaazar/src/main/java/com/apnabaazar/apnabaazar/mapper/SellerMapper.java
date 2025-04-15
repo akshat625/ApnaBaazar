@@ -27,6 +27,7 @@ public class SellerMapper {
         return SellerProfileDTO.builder()
                 .id(seller.getId())
                 .firstName(seller.getFirstName())
+                .middleName(seller.getMiddleName())
                 .lastName(seller.getLastName())
                 .isActive(seller.isActive())
                 .companyContact(seller.getCompanyContact())

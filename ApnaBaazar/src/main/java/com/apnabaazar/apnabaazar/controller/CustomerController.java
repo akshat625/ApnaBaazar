@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @RestController
@@ -43,13 +44,13 @@ public class CustomerController {
     }
 
     @PostMapping("/address")
-    public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, AddressDTO  addressDTO) {
+    public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody AddressDTO  addressDTO) {
         customerService.addCustomerAddress(userPrincipal,addressDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address added successfully."));
     }
 
-    @DeleteMapping("/address")
-    public ResponseEntity<GenericResponseDTO> deleteCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, String addressId) {
+    @DeleteMapping("/address/{addressId}")
+    public ResponseEntity<GenericResponseDTO> deleteCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId) {
         customerService.deleteCustomerAddress(userPrincipal, addressId);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address deleted successfully."));
     }
@@ -81,7 +82,7 @@ public class CustomerController {
 
 
     @PutMapping("/address/{addressId}")
-    public ResponseEntity<GenericResponseDTO> updateCustomerAddress(UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) {
+    public ResponseEntity<GenericResponseDTO> updateCustomerAddress(UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) throws AccessDeniedException {
         customerService.updateCustomerAddress(userPrincipal, addressId, addressUpdateDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
     }

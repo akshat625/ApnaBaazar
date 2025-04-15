@@ -4,13 +4,9 @@ import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Customer;
-import org.springframework.http.ResponseEntity;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class CustomerMapper {
 
@@ -29,27 +25,27 @@ public class CustomerMapper {
         if (customerAddresses == null || customerAddresses.isEmpty()) {
             return Collections.emptyList();
         }
-        return customerAddresses
-                .stream()
-                .map(address -> {
-                    AddressDTO addressDTO = new AddressDTO();
-                    addressDTO.setAddressLine(address.getAddressLine());
-                    addressDTO.setCity(address.getCity());
-                    addressDTO.setCountry(address.getCountry());
-                    addressDTO.setState(address.getState());
-                    addressDTO.setZipCode(address.getZipCode());
-                    return addressDTO;
-                }).toList();
+        return customerAddresses.stream()
+                .map(address -> AddressDTO.builder()
+                        .addressLine(address.getAddressLine())
+                        .city(address.getCity())
+                        .country(address.getCountry())
+                        .state(address.getState())
+                        .zipCode(address.getZipCode())
+                        .label(address.getLabel())
+                        .build())
+                .toList();
+
     }
 
-    public static Address toAddressDTO(AddressDTO addressDTO) {
-        Address address = new Address();
-        address.setAddressLine(addressDTO.getAddressLine());
-        address.setCity(addressDTO.getCity());
-        address.setCountry(addressDTO.getCountry());
-        address.setState(addressDTO.getState());
-        address.setZipCode(addressDTO.getZipCode());
-
-        return address;
+    public static Address toAddress(AddressDTO addressDTO) {
+        return Address.builder()
+                .addressLine(addressDTO.getAddressLine())
+                .city(addressDTO.getCity())
+                .country(addressDTO.getCountry())
+                .state(addressDTO.getState())
+                .zipCode(addressDTO.getZipCode())
+                .label(addressDTO.getLabel())
+                .build();
     }
 }
