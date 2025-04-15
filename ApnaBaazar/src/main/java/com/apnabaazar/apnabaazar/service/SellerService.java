@@ -25,6 +25,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -111,6 +113,7 @@ public class SellerService {
         }
 
         seller.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
+        seller.setPasswordUpdateDate(LocalDateTime.now());
         sellerRepository.save(seller);
 
         log.info("Seller password updated successfully for: {}", email);

@@ -25,7 +25,7 @@ public class CustomerMapper {
                 .build();
     }
 
-    public static List<AddressDTO> toAddressDTO(Set<Address> customerAddresses) {
+    public static List<AddressDTO> toAllAddressDTO(Set<Address> customerAddresses) {
         if (customerAddresses == null || customerAddresses.isEmpty()) {
             return Collections.emptyList();
         }
@@ -40,5 +40,16 @@ public class CustomerMapper {
                     addressDTO.setZipCode(address.getZipCode());
                     return addressDTO;
                 }).toList();
+    }
+
+    public static Address toAddressDTO(AddressDTO addressDTO) {
+        Address address = new Address();
+        address.setAddressLine(addressDTO.getAddressLine());
+        address.setCity(addressDTO.getCity());
+        address.setCountry(addressDTO.getCountry());
+        address.setState(addressDTO.getState());
+        address.setZipCode(addressDTO.getZipCode());
+
+        return address;
     }
 }

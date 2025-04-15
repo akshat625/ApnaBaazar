@@ -9,11 +9,17 @@ import lombok.Setter;
 public class UserDTO {
 
     @NotBlank(message = "First name is required")
+    @Size(min = 2, max = 50, message = "First name must be between 2 and 50 characters")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "First name must contain only alphabets")
     private String firstName;
 
+    @Size(max = 50, message = "Middle name can be up to 50 characters")
+    @Pattern(regexp = "^[A-Za-z]*$", message = "Middle name must contain only alphabets")
     private String middleName;
 
     @NotBlank(message = "Last name is required")
+    @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "Last name must contain only alphabets")
     private String lastName;
 
     @NotBlank(message = "Email is required")

@@ -24,6 +24,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -80,7 +81,7 @@ public class CustomerService {
             log.info("No addresses found for customer: {}", email);
         }
 
-        return ResponseEntity.ok(CustomerMapper.toAddressDTO(customerAddresses));
+        return ResponseEntity.ok(CustomerMapper.toAllAddressDTO(customerAddresses));
     }
 
     private String getUpdatedValue(String newValue, String oldValue) {
@@ -116,13 +117,23 @@ public class CustomerService {
             throw new PasswordMismatchException("New password and confirm password do not match.");
         }
 
+
+
         customer.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
+        customer.setPasswordUpdateDate(LocalDateTime.now());
         customerRepository.save(customer);
 
         log.info("Customer password updated successfully for: {}", email);
     }
+
+    public void addCustomerAddress(UserPrincipal userPrincipal, AddressDTO addressDTO) {
+        String email = userPrincipal.getUsername();
+        log.info("Adding a new Customer Address for customer: {}", email);
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Customer not found"));
+        Address newAddress = CustomerMapper.toAddressDTO(addressDTO);
+        log.info("Adding a new Address for customer: {}", email);
+        customer.getAddresses().add(newAddress);
+        customerRepository.save(customer);
+    }
 }
-
-
-
-

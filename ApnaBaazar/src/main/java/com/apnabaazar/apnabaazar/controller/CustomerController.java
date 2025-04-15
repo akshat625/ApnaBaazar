@@ -44,6 +44,12 @@ public class CustomerController {
         return customerService.getCustomerAddresses(userPrincipal);
     }
 
+    @PostMapping("/addresses")
+    public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, AddressDTO  addressDTO) {
+        customerService.addCustomerAddress(userPrincipal,addressDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Address added successfully."));
+    }
+
 
     @PostMapping("/upload/profile-image")
     public ResponseEntity<GenericResponseDTO> uploadCustomerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
