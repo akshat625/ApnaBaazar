@@ -1,6 +1,4 @@
 package com.apnabaazar.apnabaazar.model.users;
-
-
 import com.apnabaazar.apnabaazar.model.orders.Cart;
 import com.apnabaazar.apnabaazar.model.orders.Order;
 import jakarta.persistence.*;

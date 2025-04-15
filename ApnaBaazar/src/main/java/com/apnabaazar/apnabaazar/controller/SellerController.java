@@ -1,12 +1,11 @@
 package com.apnabaazar.apnabaazar.controller;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
-import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
-import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.validation.Valid;
@@ -57,7 +56,7 @@ public class SellerController {
 
 
     @PutMapping("/profile")
-    public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody SellerProfileUpdateDTO  sellerProfileUpdateDTO) {
+    public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO sellerProfileUpdateDTO) {
         sellerService.updateSellerProfile(userPrincipal, sellerProfileUpdateDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Profile updated successfully."));
     }

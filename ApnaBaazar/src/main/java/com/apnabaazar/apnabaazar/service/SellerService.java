@@ -4,18 +4,15 @@ import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
-import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
-import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Seller;
-import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.AddressRepository;
 import com.apnabaazar.apnabaazar.repository.SellerRepository;
 import com.apnabaazar.apnabaazar.repository.UserRepository;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,16 +66,16 @@ public class SellerService {
     }
 
 
-    public void updateSellerProfile(UserPrincipal userPrincipal, SellerProfileUpdateDTO sellerProfileUpdateDTO) {
+    public void updateSellerProfile(UserPrincipal userPrincipal, ProfileUpdateDTO sellerProfileUpdateDTO) {
         String email = userPrincipal.getUsername();
-        log.info("Updating seller profile for seller: {}", email);
+        log.info("Updating profile for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)
                 .orElseThrow(()-> new UsernameNotFoundException("Seller not found"));
         if (sellerProfileUpdateDTO != null){
             seller.setFirstName(getUpdatedValue(sellerProfileUpdateDTO.getFirstName(), seller.getFirstName()));
             seller.setMiddleName(getUpdatedValue(sellerProfileUpdateDTO.getMiddleName(), seller.getMiddleName()));
             seller.setLastName(getUpdatedValue(sellerProfileUpdateDTO.getLastName(), seller.getLastName()));
-            seller.setCompanyContact(getUpdatedValue(sellerProfileUpdateDTO.getCompanyContact(), seller.getCompanyContact()));
+            seller.setCompanyContact(getUpdatedValue(sellerProfileUpdateDTO.getContact(), seller.getCompanyContact()));
        }
         sellerRepository.save(seller);
         log.info("Seller profile updated successfully for: {}", email);

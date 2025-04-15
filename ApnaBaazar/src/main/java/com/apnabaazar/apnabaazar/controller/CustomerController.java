@@ -6,11 +6,9 @@ import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
-import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
-import com.apnabaazar.apnabaazar.service.SellerService;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -74,6 +72,13 @@ public class CustomerController {
             return ResponseEntity.ok(new GenericResponseDTO(true, "No profile image found to delete."));
         }
     }
+
+    @PutMapping("/profile")
+    public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO customerProfileUpdateDTO) {
+        customerService.updateCustomerProfile(userPrincipal, customerProfileUpdateDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Profile updated successfully."));
+    }
+
 
     @PutMapping("/address/{addressId}")
     public ResponseEntity<GenericResponseDTO> updateCustomerAddress(UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) {

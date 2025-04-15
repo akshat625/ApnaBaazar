@@ -5,12 +5,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class SellerProfileUpdateDTO {
+public class ProfileUpdateDTO {
     private String firstName;
     private String middleName;
     private String lastName;
-    private String gstin;
-    private String email;
-    private String companyName;
-    private String companyContact;
+    private String contact;
 }

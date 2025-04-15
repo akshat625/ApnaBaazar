@@ -9,6 +9,7 @@ import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Customer;
@@ -106,6 +107,7 @@ public class CustomerService {
         log.info("Address [ID: {}] updated successfully for customer: {}", addressId, email);
     }
 
+
     public void updateCustomerPassword(UserPrincipal userPrincipal, UpdatePasswordDTO updatePasswordDTO) {
         String email = userPrincipal.getUsername();
         log.info("Updating password for customer: {}", email);
@@ -142,5 +144,20 @@ public class CustomerService {
                 .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
         addressRepository.delete(address);
         log.info("Address deleted successfully for customer: {}", email);
+    }
+
+    public void updateCustomerProfile(UserPrincipal userPrincipal, ProfileUpdateDTO customerProfileUpdateDTO) {
+        String email = userPrincipal.getUsername();
+        log.info("Updating profile for customer: {}", email);
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(()-> new UsernameNotFoundException("Customer not found"));
+        if (customerProfileUpdateDTO != null){
+            customer.setFirstName(getUpdatedValue(customerProfileUpdateDTO.getFirstName(), customer.getFirstName()));
+            customer.setMiddleName(getUpdatedValue(customerProfileUpdateDTO.getMiddleName(), customer.getMiddleName()));
+            customer.setLastName(getUpdatedValue(customerProfileUpdateDTO.getLastName(), customer.getLastName()));
+            customer.setContact(getUpdatedValue(customerProfileUpdateDTO.getContact(), customer.getContact()));
+        }
+        customerRepository.save(customer);
+        log.info("Customer profile updated successfully for: {}", email);
     }
 }
