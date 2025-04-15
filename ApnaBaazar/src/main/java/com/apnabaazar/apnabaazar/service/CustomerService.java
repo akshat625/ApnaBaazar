@@ -117,8 +117,6 @@ public class CustomerService {
             throw new PasswordMismatchException("New password and confirm password do not match.");
         }
 
-
-
         customer.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));
         customer.setPasswordUpdateDate(LocalDateTime.now());
         customerRepository.save(customer);
@@ -135,5 +133,14 @@ public class CustomerService {
         log.info("Adding a new Address for customer: {}", email);
         customer.getAddresses().add(newAddress);
         customerRepository.save(customer);
+    }
+
+    public void deleteCustomerAddress(UserPrincipal userPrincipal, String addressId) {
+        String email = userPrincipal.getUsername();
+        log.info("Deleting address [ID: {}] for customer: {}", addressId, email);
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
+        addressRepository.delete(address);
+        log.info("Address deleted successfully for customer: {}", email);
     }
 }

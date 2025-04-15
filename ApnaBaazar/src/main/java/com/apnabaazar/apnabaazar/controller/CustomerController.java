@@ -44,10 +44,16 @@ public class CustomerController {
         return customerService.getCustomerAddresses(userPrincipal);
     }
 
-    @PostMapping("/addresses")
+    @PostMapping("/address")
     public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, AddressDTO  addressDTO) {
         customerService.addCustomerAddress(userPrincipal,addressDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, "Address added successfully."));
+    }
+
+    @DeleteMapping("/address")
+    public ResponseEntity<GenericResponseDTO> deleteCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, String addressId) {
+        customerService.deleteCustomerAddress(userPrincipal, addressId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, "Address deleted successfully."));
     }
 
 
