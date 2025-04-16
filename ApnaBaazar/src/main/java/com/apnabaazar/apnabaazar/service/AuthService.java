@@ -2,6 +2,8 @@ package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.model.dto.*;
+import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerDTO;
 import com.apnabaazar.apnabaazar.model.token.AuthToken;
 import com.apnabaazar.apnabaazar.enums.TokenType;
 import com.apnabaazar.apnabaazar.model.users.*;
@@ -12,41 +14,31 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import jakarta.mail.MessagingException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.SignatureException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@RequiredArgsConstructor
 @Service
 public class AuthService {
 
     private final TokenBlacklistService tokenBlacklistService;
     private final RedisTemplate<String, String> redisTemplate;
-    private UserRepository userRepository;
-    private RoleRepository roleRepository;
-    private PasswordEncoder passwordEncoder;
-    private EmailService emailService;
-    private JwtService jwtService;
-    private AuthTokenRepository authTokenRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final JwtService jwtService;
+    private final AuthTokenRepository authTokenRepository;
 
-    @Autowired
-    public AuthService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, EmailService emailService, JwtService jwtService, AuthTokenRepository authTokenRepository, TokenBlacklistService tokenBlacklistService, RedisTemplate<String, String> redisTemplate) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
-        this.jwtService = jwtService;
-        this.authTokenRepository = authTokenRepository;
-        this.tokenBlacklistService = tokenBlacklistService;
-        this.redisTemplate = redisTemplate;
-    }
 
     public String customerSignup(CustomerDTO input) {
         if (!input.getPassword().equals(input.getConfirmPassword())) {
@@ -170,7 +162,7 @@ public class AuthService {
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             handleFailedLoginAttempt(user);
-            throw new InvalidCredentialsException("Invalid password");
+            throw new InvalidCredentialsException("Invalid password. You have "+ (3-user.getInvalidAttemptCount())+ " attempts left.");
         }
 
 
@@ -200,6 +192,7 @@ public class AuthService {
     private void handleFailedLoginAttempt(User user) {
         user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
         if (user.getInvalidAttemptCount() >= 3) {
+
             user.setLocked(true);
             try {
                 emailService.sendAccountLockedEmail(user.getEmail(), "Account Locked");
@@ -289,7 +282,7 @@ public class AuthService {
         if (userRepository.findByEmail(input.getEmail()).isPresent()) {
             throw new EmailAlreadyInUseException("Email already in use");
         }
-        if (userRepository.existsByGst(input.getGst())) {
+        if (userRepository.existsByGstin(input.getGstin())) {
             throw new GstAlreadyInUseException("Gst already in use");
         }
         if (userRepository.existsByCompanyName(input.getCompanyName())) {
@@ -303,7 +296,7 @@ public class AuthService {
         seller.setEmail(input.getEmail());
         seller.setPassword(passwordEncoder.encode(input.getPassword()));
         seller.setCompanyName(input.getCompanyName());
-        seller.setGst(input.getGst());
+        seller.setGstin(input.getGstin());
         seller.setCompanyContact(input.getCompanyContact());
         if (input.getMiddleName() != null && !input.getMiddleName().isEmpty()) {
             seller.setMiddleName(input.getMiddleName());

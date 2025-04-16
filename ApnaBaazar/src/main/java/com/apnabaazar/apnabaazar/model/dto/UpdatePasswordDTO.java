@@ -8,9 +8,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ResetPasswordDTO {
+public class UpdatePasswordDTO {
 
-    private String token;
+    @NotBlank(message = "{password.old.required}")
+    private String oldPassword;
 
     @NotBlank(message = "{password.required}")
     @Size(min = 8, max = 15, message = "{password.size}")
@@ -18,9 +19,11 @@ public class ResetPasswordDTO {
             regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
             message = "{password.pattern}"
     )
-    private String password;
+
+    private String newPassword;
 
     @NotBlank(message = "{confirm.password.required}")
+    @Size(min = 8, max = 15, message = "{password.size}")
     @Pattern(
             regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
             message = "{password.pattern}"

@@ -8,31 +8,37 @@ import lombok.Setter;
 @Setter
 public class UserDTO {
 
-    @NotBlank(message = "First name is required")
+    @NotBlank(message = "{first.name.required}")
+    @Size(min = 2, max = 50, message = "{first.name.size}")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "{first.name.pattern}")
     private String firstName;
 
+    @Size(max = 50, message = "{middle.name.size}")
+    @Pattern(regexp = "^[A-Za-z]*$", message = "{middle.name.pattern}")
     private String middleName;
 
-    @NotBlank(message = "Last name is required")
+    @NotBlank(message = "{last.name.required}")
+    @Size(min = 2, max = 50, message = "{last.name.size}")
+    @Pattern(regexp = "^[A-Za-z]+$", message = "{last.name.pattern}")
     private String lastName;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
+    @NotBlank(message = "{email.required}")
+    @Email(message = "{email.invalid}")
+    @Size(max = 255, message = "{email.size}")
     @Pattern(
             regexp = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$",
-            message = "Invalid email format"
+            message = "{email.invalid}"
     )
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 15, message = "Password must be between 8 and 15 characters long")
+    @NotBlank(message = "{password.required}")
+    @Size(min = 8, max = 15, message = "{password.size}")
     @Pattern(
-            regexp = "^(?=.[A-Z])(?=.[a-z])(?=.\\d)(?=.[@$!%?&])[A-Za-z\\d@$!%?&]{8,15}$",
-            message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, and 1 special character"
+            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
+            message = "{password.pattern}"
     )
     private String password;
 
-    @NotBlank(message = "Confirm Password is required")
+    @NotBlank(message = "{confirm.password.required}")
     private String confirmPassword;
-
 }

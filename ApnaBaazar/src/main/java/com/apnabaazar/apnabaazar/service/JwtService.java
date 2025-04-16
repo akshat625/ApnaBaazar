@@ -8,6 +8,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.util.Date;
 
 @Getter
 @Setter
+@RequiredArgsConstructor
 @Service
 public class JwtService {
 
@@ -37,8 +39,8 @@ public class JwtService {
     @Value("${jwt.expiration.reset}")
     private long resetPasswordTokenExpirationTime;
 
-    @Autowired
-    private AuthTokenRepository authTokenRepository;
+
+    private final AuthTokenRepository authTokenRepository;
 
 
     /**

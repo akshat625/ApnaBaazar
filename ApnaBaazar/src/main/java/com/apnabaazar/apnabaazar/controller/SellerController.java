@@ -1,14 +1,88 @@
 package com.apnabaazar.apnabaazar.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.service.S3Service;
+import com.apnabaazar.apnabaazar.service.SellerService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Locale;
+
+@RequiredArgsConstructor
 @RestController
+
 @RequestMapping("/seller")
 public class SellerController {
-    @GetMapping
-    public String testCustomer(){
-        return "Hello World! from Seller";
+
+    private final SellerService sellerService;
+    private final S3Service s3Service;
+    private final MessageSource messageSource;
+    private Locale locale;
+
+    @ModelAttribute
+    public void initLocale() {
+        this.locale = LocaleContextHolder.getLocale();
     }
+
+    @GetMapping("/test")
+    public String testCustomer(){
+        return messageSource.getMessage("seller.hello.message", new Object[]{},locale);
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<SellerProfileDTO>  getSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return sellerService.getSellerProfile(userPrincipal);
+    }
+
+    @PostMapping("/upload/profile-image")
+    public ResponseEntity<GenericResponseDTO> uploadSellerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
+        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(),file);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key},locale) + key));
+
+
+    }
+
+    @DeleteMapping("/profile/image")
+    public ResponseEntity<GenericResponseDTO> deleteSellerProfileImage(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        String username = userPrincipal.getUsername();
+        boolean deleted = s3Service.deleteProfileImage(username);
+        String messageKey = deleted ? "image.deleted" : "image.not-found";
+        String message = messageSource.getMessage(messageKey, null, locale);
+        return ResponseEntity.ok(new GenericResponseDTO(true, message));
+    }
+
+
+    @PutMapping("/profile")
+    public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO sellerProfileUpdateDTO) {
+        sellerService.updateSellerProfile(userPrincipal, sellerProfileUpdateDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null,locale)));
+    }
+
+    @PutMapping("/address/{addressId}")
+    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId, @Valid  @RequestBody AddressUpdateDTO addressUpdateDTO) {
+        sellerService.updateSellerAddress(userPrincipal,addressId,addressUpdateDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null,locale)));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<GenericResponseDTO> updateSellerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
+        sellerService.updateSellerPassword(userPrincipal, updatePasswordDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
+    }
+
+
+
+
 }

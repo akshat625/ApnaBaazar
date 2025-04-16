@@ -1,19 +1,20 @@
 package com.apnabaazar.apnabaazar.model.users;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
-import java.util.UUID;
 
 @Entity
 @Table(name = "addresses")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+//@SQLDelete(sql = "UPDATE addresses SET is_deleted = true WHERE id = ?")
+@Where(clause = "is_deleted = false")
 public class Address {
 
     @Id
@@ -32,4 +33,6 @@ public class Address {
 
     private String label;
 
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted = false;
 }
