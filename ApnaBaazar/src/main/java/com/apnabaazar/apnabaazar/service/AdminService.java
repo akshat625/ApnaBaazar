@@ -120,5 +120,15 @@ public class AdminService {
     }
 
 
+    public List<MetadataFieldDTO> getALlMetadataFields(int max, int offset, String sort, String order, String query) {
+        Sort.Direction direction = Sort.Direction.fromOptionalString(order).orElse(Sort.Direction.ASC);
+        Pageable pageable = PageRequest.of(offset, max, Sort.by(direction,sort));
 
+        Page<CategoryMetadataField> metadataFieldPage;
+        if (query != null && !query.isBlank())
+            metadataFieldPage = categoryMetadataFieldRepository.findByNameContainingIgnoreCase(query,pageable);
+        else
+            metadataFieldPage = categoryMetadataFieldRepository.findAll(pageable);
+        return metadataFieldPage.stream().map(Mapper::fromMetadataField).toList();
+    }
 }

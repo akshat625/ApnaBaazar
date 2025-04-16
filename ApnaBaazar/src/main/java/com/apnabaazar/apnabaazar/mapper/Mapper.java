@@ -45,5 +45,9 @@ public class Mapper {
         return first + " " + last;
     }
 
-
+    public static MetadataFieldDTO fromMetadataField(CategoryMetadataField categoryMetadataField) {
+        MetadataFieldDTO dto = new MetadataFieldDTO();
+        dto.setFieldName(categoryMetadataField.getName());
+        return dto;
+    }
 }

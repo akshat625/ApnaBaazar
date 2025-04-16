@@ -80,5 +80,14 @@ public class AdminController {
         return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("metadata.field.added.success", null, locale)));
     }
 
-
+    @GetMapping("/metadata-fields")
+    public ResponseEntity<List<MetadataFieldDTO>> getAllMetadataFields(
+            @RequestParam(required = false, defaultValue = "10") int max,
+            @RequestParam(required = false, defaultValue = "0") int offset,
+            @RequestParam(required = false, defaultValue = "name") String sort,
+            @RequestParam(required = false, defaultValue = "asc") String order,
+            @RequestParam(required = false, defaultValue = "") String query
+    ) {
+        return ResponseEntity.ok(adminService.getALlMetadataFields(max, offset, sort, order, query));
+    }
 }
