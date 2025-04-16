@@ -2,7 +2,6 @@ package com.apnabaazar.apnabaazar.model.users;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 

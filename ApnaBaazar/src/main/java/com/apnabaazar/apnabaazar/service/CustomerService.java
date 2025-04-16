@@ -181,8 +181,6 @@ public class CustomerService {
             addressRepository.deleteAddressById(addressId);
             log.info("Address [ID: {}] soft deleted successfully for customer: {}", addressId, email);
         }
-//        Address address = getAddressById(addressId);
-
     }
 
     public void updateCustomerProfile(UserPrincipal userPrincipal, ProfileUpdateDTO customerProfileUpdateDTO) {

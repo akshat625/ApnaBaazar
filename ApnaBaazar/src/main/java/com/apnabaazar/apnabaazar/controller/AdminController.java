@@ -1,14 +1,19 @@
 package com.apnabaazar.apnabaazar.controller;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.MetadataFieldDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.service.AdminService;
 import jakarta.mail.MessagingException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Locale;
 
 @RequiredArgsConstructor
 @RestController
@@ -16,6 +21,13 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final MessageSource messageSource;
+    private Locale locale;
+
+    @ModelAttribute
+    public void initLocale() {
+        this.locale = LocaleContextHolder.getLocale();
+    }
 
     @GetMapping("/test")
     public String index(){
@@ -59,5 +71,14 @@ public class AdminController {
     public ResponseEntity<GenericResponseDTO> deActivateSeller(@RequestParam String id) throws MessagingException {
         return adminService.deActivateSeller(id);
     }
+
+    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    @PostMapping("/metadata-fields")
+    public ResponseEntity<GenericResponseDTO> addMetadataField(@Valid @RequestBody MetadataFieldDTO metadataFieldDTO) {
+        adminService.addMetadataField(metadataFieldDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("metadata.field.added.success", null, locale)));
+    }
+
 
 }
