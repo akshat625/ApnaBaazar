@@ -1,12 +1,10 @@
 package com.apnabaazar.apnabaazar.model.users;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
-import java.util.UUID;
 
 @Entity
 @Table(name = "addresses")
@@ -15,7 +13,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SQLDelete(sql = "UPDATE addresses SET is_deleted = true WHERE id = ?")
+//@SQLDelete(sql = "UPDATE addresses SET is_deleted = true WHERE id = ?")
 @Where(clause = "is_deleted = false")
 public class Address {
 

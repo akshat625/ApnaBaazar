@@ -11,6 +11,8 @@ import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,10 +30,17 @@ public class CustomerController {
 
     private final CustomerService customerService;
     private final S3Service s3Service;
+    private final MessageSource messageSource;
+    private Locale locale;
+
+    @ModelAttribute
+    public void initLocale() {
+        this.locale = LocaleContextHolder.getLocale();
+    }
 
     @GetMapping("/hello")
     public String testCustomer() {
-        return "Hello World! from Customer";
+        return messageSource.getMessage("customer.hello.message", new Object[]{},locale);
     }
 
     @GetMapping("/profile")
@@ -46,20 +56,20 @@ public class CustomerController {
     @PostMapping("/address")
     public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody AddressDTO  addressDTO) {
         customerService.addCustomerAddress(userPrincipal,addressDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Address added successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.added", null, locale)));
     }
 
     @DeleteMapping("/address/{addressId}")
-    public ResponseEntity<GenericResponseDTO> deleteCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId) {
+    public ResponseEntity<GenericResponseDTO> deleteCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId) throws AccessDeniedException {
         customerService.deleteCustomerAddress(userPrincipal, addressId);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Address deleted successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.deleted", null, locale)));
     }
 
 
     @PostMapping("/upload/profile-image")
     public ResponseEntity<GenericResponseDTO> uploadCustomerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
         String key = s3Service.uploadProfileImage(userPrincipal.getUsername(), file);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Image uploaded at key : " + key));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key},locale) + key));
 
     }
 
@@ -67,29 +77,27 @@ public class CustomerController {
     public ResponseEntity<GenericResponseDTO> deleteCustomerProfileImage(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         String username = userPrincipal.getUsername();
         boolean deleted = s3Service.deleteProfileImage(username);
-        if (deleted) {
-            return ResponseEntity.ok(new GenericResponseDTO(true, "Profile image deleted successfully."));
-        } else {
-            return ResponseEntity.ok(new GenericResponseDTO(true, "No profile image found to delete."));
-        }
+        String messageKey = deleted ? "image.deleted" : "image.not-found";
+        String message = messageSource.getMessage(messageKey, null, locale);
+        return ResponseEntity.ok(new GenericResponseDTO(true, message));
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO customerProfileUpdateDTO) {
+    public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProfileUpdateDTO customerProfileUpdateDTO) {
         customerService.updateCustomerProfile(userPrincipal, customerProfileUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Profile updated successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null,locale)));
     }
 
 
     @PutMapping("/address/{addressId}")
     public ResponseEntity<GenericResponseDTO> updateCustomerAddress(UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) throws AccessDeniedException {
         customerService.updateCustomerAddress(userPrincipal, addressId, addressUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null,locale)));
     }
 
     @PutMapping("/password")
     public ResponseEntity<GenericResponseDTO> updateCustomerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         customerService.updateCustomerPassword(userPrincipal, updatePasswordDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Password updated successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
     }
 }

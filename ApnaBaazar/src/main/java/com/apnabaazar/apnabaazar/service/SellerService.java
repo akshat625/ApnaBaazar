@@ -16,13 +16,17 @@ import com.apnabaazar.apnabaazar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,6 +40,15 @@ public class SellerService {
     private final AddressRepository addressRepository;
     private final S3Service s3Service;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final MessageSource messageSource;
+
+    private Locale locale;
+
+    @ModelAttribute
+    public void initLocale() {
+        this.locale = LocaleContextHolder.getLocale();
+    }
+
 
     @Value("${aws.s3.default-seller-image}")
     private String defaultSellerImage;
@@ -47,7 +60,7 @@ public class SellerService {
         Seller seller = sellerRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("Seller not found with email: {}", email);
-                    return new UsernameNotFoundException("Seller not found");
+                    return new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale));
                 });
 
         try {
@@ -70,7 +83,7 @@ public class SellerService {
         String email = userPrincipal.getUsername();
         log.info("Updating profile for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)
-                .orElseThrow(()-> new UsernameNotFoundException("Seller not found"));
+                .orElseThrow(()-> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
         if (sellerProfileUpdateDTO != null){
             seller.setFirstName(getUpdatedValue(sellerProfileUpdateDTO.getFirstName(), seller.getFirstName()));
             seller.setMiddleName(getUpdatedValue(sellerProfileUpdateDTO.getMiddleName(), seller.getMiddleName()));
@@ -84,7 +97,7 @@ public class SellerService {
     public void updateSellerAddress(UserPrincipal userPrincipal,String addressId, AddressUpdateDTO addressUpdateDTO) {
         String email = userPrincipal.getUsername();
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(()-> new ResourceNotFoundException("Address not found with ID: " + addressId));
+                .orElseThrow(()-> new ResourceNotFoundException(messageSource.getMessage("address.not.found", new Object[]{addressId}, locale)));
         log.info("Updating address [ID: {}] for seller: {}", addressId, email);
 
         if (addressUpdateDTO != null){
@@ -102,11 +115,11 @@ public class SellerService {
         String email = userPrincipal.getUsername();
         log.info("Updating seller password for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Seller not found"));
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
         if(!passwordEncoder.matches(updatePasswordDTO.getOldPassword(),seller.getPassword()))
-            throw new PasswordMismatchException("Old Password is incorrect.");
+            throw new PasswordMismatchException(messageSource.getMessage("password.old.incorrect", null, locale));
         if(!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
-            throw new PasswordMismatchException("New password and confirm password do not match.");
+            throw new PasswordMismatchException(messageSource.getMessage("password.mismatch", null, locale));
         }
 
         seller.setPassword(passwordEncoder.encode(updatePasswordDTO.getNewPassword()));

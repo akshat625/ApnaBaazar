@@ -69,7 +69,7 @@ public class User {
 
     private LocalDateTime passwordUpdateDate;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
     private Set<Address> addresses = new HashSet<>();
 

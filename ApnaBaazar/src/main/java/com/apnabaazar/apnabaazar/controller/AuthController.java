@@ -5,6 +5,7 @@ import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerDTO;
 import com.apnabaazar.apnabaazar.service.AuthService;
 import jakarta.mail.MessagingException;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +43,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/customer"  )
-    public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<LoginResponseDTO> loginCustomer(@Valid @RequestBody LoginDTO loginDTO) {
         return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 

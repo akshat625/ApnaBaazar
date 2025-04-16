@@ -10,12 +10,15 @@ import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Locale;
 
 @RequiredArgsConstructor
 @RestController
@@ -25,10 +28,17 @@ public class SellerController {
 
     private final SellerService sellerService;
     private final S3Service s3Service;
+    private final MessageSource messageSource;
+    private Locale locale;
+
+    @ModelAttribute
+    public void initLocale() {
+        this.locale = LocaleContextHolder.getLocale();
+    }
 
     @GetMapping("/test")
     public String testCustomer(){
-        return "Hello World! from Seller";
+        return messageSource.getMessage("seller.hello.message", new Object[]{},locale);
     }
 
     @GetMapping("/profile")
@@ -39,7 +49,8 @@ public class SellerController {
     @PostMapping("/upload/profile-image")
     public ResponseEntity<GenericResponseDTO> uploadSellerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
         String key = s3Service.uploadProfileImage(userPrincipal.getUsername(),file);
-        return ResponseEntity.ok(new GenericResponseDTO(true,"Image uploaded at key : "+key));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key},locale) + key));
+
 
     }
 
@@ -47,30 +58,28 @@ public class SellerController {
     public ResponseEntity<GenericResponseDTO> deleteSellerProfileImage(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         String username = userPrincipal.getUsername();
         boolean deleted = s3Service.deleteProfileImage(username);
-        if (deleted) {
-            return ResponseEntity.ok(new GenericResponseDTO(true, "Profile image deleted successfully."));
-        } else {
-            return ResponseEntity.ok(new GenericResponseDTO(true, "No profile image found to delete."));
-        }
+        String messageKey = deleted ? "image.deleted" : "image.not-found";
+        String message = messageSource.getMessage(messageKey, null, locale);
+        return ResponseEntity.ok(new GenericResponseDTO(true, message));
     }
 
 
     @PutMapping("/profile")
     public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO sellerProfileUpdateDTO) {
         sellerService.updateSellerProfile(userPrincipal, sellerProfileUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Profile updated successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null,locale)));
     }
 
     @PutMapping("/address/{addressId}")
     public ResponseEntity<GenericResponseDTO> updateSellerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId, @Valid  @RequestBody AddressUpdateDTO addressUpdateDTO) {
         sellerService.updateSellerAddress(userPrincipal,addressId,addressUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Address updated successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null,locale)));
     }
 
     @PutMapping("/password")
     public ResponseEntity<GenericResponseDTO> updateSellerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         sellerService.updateSellerPassword(userPrincipal, updatePasswordDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, "Password updated successfully."));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
     }
 
 
