@@ -10,10 +10,10 @@ import lombok.Setter;
 @Setter
 public class CustomerDTO extends UserDTO {
 
-    @NotBlank(message = "Contact number is required")
+    @NotBlank(message = "{contact.required}")
     @Pattern(
             regexp = "^[6-9]\\d{9}$",
-            message = "Contact number must be 10 digits."
+            message = "{contact.pattern}"
     )
     private String contact;
 }

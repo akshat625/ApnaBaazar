@@ -10,37 +10,35 @@ import lombok.Setter;
 @Setter
 public class SellerDTO extends UserDTO {
 
-    @NotBlank(message = "GSTIN is required")
+    @NotBlank(message = "{gstin.required}")
     @Pattern(
             regexp = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$",
-            message = "Invalid GSTIN format"
+            message = "{gstin.invalid}"
     )
     private String gstin;
 
-    @NotBlank(message = "Contact number is required")
+    @NotBlank(message = "{company.contact.required}")
     @Pattern(
             regexp = "^[6-9]\\d{9}$",
-            message = "Contact number must be 10 digits."
+            message = "{company.contact.pattern}"
     )
     private String companyContact;
 
-    @NotBlank(message = "Company name is required")
+    @NotBlank(message = "{company.name.required}")
     private String companyName;
 
-    @NotBlank(message = "City is required")
+    @NotBlank(message = "{city.required}")
     private String city;
 
-    @NotBlank(message = "State is required")
+    @NotBlank(message = "{state.required}")
     private String state;
 
-    @NotBlank(message = "Country is required")
+    @NotBlank(message = "{country.required}")
     private String country;
 
-    @NotBlank(message = "Address Line is required")
+    @NotBlank(message = "{address.line.required}")
     private String addressLine;
 
-    @NotBlank(message = "ZipCode is required")
+    @NotBlank(message = "{zipcode.required}")
     private String zipCode;
-
-    //set label in service layer
 }

@@ -12,20 +12,18 @@ public class ResetPasswordDTO {
 
     private String token;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 15, message = "Password must be between 8 and 15 characters long")
+    @NotBlank(message = "{password.required}")
+    @Size(min = 8, max = 15, message = "{password.size}")
     @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
-            message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, 1 special character and be 8–15 characters long."
+            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
+            message = "{password.pattern}"
     )
     private String password;
 
-
+    @NotBlank(message = "{confirm.password.required}")
     @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
-            message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, 1 special character and be 8–15 characters long."
+            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
+            message = "{password.pattern}"
     )
-    @NotBlank(message = "Confirm Password is required")
     private String confirmPassword;
-
 }

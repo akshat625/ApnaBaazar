@@ -11,12 +11,12 @@ import lombok.Setter;
 @Setter
 public class ForgotPasswordDTO {
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    @Size(max = 255, message = "Email size exceeds.")
+    @NotBlank(message = "{email.required}")
+    @Email(message = "{email.invalid}")
+    @Size(max = 255, message = "{email.size}")
     @Pattern(
             regexp = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$",
-            message = "Invalid email format"
+            message = "{email.invalid}"
     )
     private String email;
 }

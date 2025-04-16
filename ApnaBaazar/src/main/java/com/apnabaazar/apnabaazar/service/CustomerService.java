@@ -46,27 +46,23 @@ public class CustomerService {
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
     private final AddressRepository addressRepository;
-    private Locale locale;
-
-    @ModelAttribute
-    public void initLocale() {
-        this.locale = LocaleContextHolder.getLocale();
-    }
 
 
     @Value("${aws.s3.default-customer-image}")
     private String defaultCustomerImage;
 
     private Customer getCustomerByEmail(String email) {
+        Locale locale = LocaleContextHolder.getLocale();
         return customerRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("Customer not found with email: {}", email);
-                    String message = messageSource.getMessage("customer.not.found", null, locale);
+                    String message = messageSource.getMessage("customer.not.found", new Object[]{email}, locale);
                     return new UsernameNotFoundException(message);
                 });
     }
 
     private boolean validateAddressOwnership(Customer customer, String addressId, String email) throws AccessDeniedException {
+        Locale locale = LocaleContextHolder.getLocale();
         boolean ownsAddress = customer.getAddresses().stream()
                 .anyMatch(address -> address.getId().equals(addressId));
         if (!ownsAddress) {
@@ -78,6 +74,7 @@ public class CustomerService {
     }
 
     private Address getAddressById(String addressId) {
+        Locale locale = LocaleContextHolder.getLocale();
         return addressRepository.findById(addressId)
                 .orElseThrow(() -> {
                     String message = messageSource.getMessage("address.not.found", new Object[]{addressId}, locale);
@@ -147,6 +144,7 @@ public class CustomerService {
 
 
     public void updateCustomerPassword(UserPrincipal userPrincipal, UpdatePasswordDTO updatePasswordDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
         String email = userPrincipal.getUsername();
         log.info("Updating password for customer: {}", email);
         Customer customer = getCustomerByEmail(email);

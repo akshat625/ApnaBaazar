@@ -20,13 +20,13 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register/seller")
-    public ResponseEntity<String> registerSeller(@RequestBody SellerDTO sellerDTO) {
+    public ResponseEntity<String> registerSeller(@Valid @RequestBody SellerDTO sellerDTO) {
         authService.sellerSignup(sellerDTO);
         return ResponseEntity.ok("Seller registered successfully!");
     }
 
     @PostMapping("/register/customer")
-    public ResponseEntity<String> registerCustomer(@RequestBody CustomerDTO customerDTO) {
+    public ResponseEntity<String> registerCustomer(@Valid @RequestBody CustomerDTO customerDTO) {
         authService.customerSignup
                 (customerDTO);
         return ResponseEntity.ok("Customer registered successfully!");
@@ -43,7 +43,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/customer"  )
-    public ResponseEntity<LoginResponseDTO> loginCustomer(@Valid @RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<LoginResponseDTO> loginCustomer(@RequestBody LoginDTO loginDTO) {
         return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 
@@ -53,7 +53,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/admin")
-    public ResponseEntity<LoginResponseDTO> loginAdmin(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<LoginResponseDTO> loginAdmin(@Valid @RequestBody LoginDTO loginDTO) {
         return new ResponseEntity<>(authService.login(loginDTO), HttpStatus.OK);
     }
 

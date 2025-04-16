@@ -34,26 +34,19 @@ import java.util.Locale;
 @Transactional
 public class SellerService {
 
-    private final UserRepository userRepository;
     private final SellerRepository sellerRepository;
-    private final EmailService emailService;
     private final AddressRepository addressRepository;
     private final S3Service s3Service;
     private final BCryptPasswordEncoder passwordEncoder;
     private final MessageSource messageSource;
 
-    private Locale locale;
-
-    @ModelAttribute
-    public void initLocale() {
-        this.locale = LocaleContextHolder.getLocale();
-    }
 
 
     @Value("${aws.s3.default-seller-image}")
     private String defaultSellerImage;
 
     public ResponseEntity<SellerProfileDTO> getSellerProfile(UserPrincipal userPrincipal) {
+        Locale locale = LocaleContextHolder.getLocale();
         String email = userPrincipal.getUsername();
         log.info("Fetching profile for seller: {}", email);
 
@@ -80,6 +73,7 @@ public class SellerService {
 
 
     public void updateSellerProfile(UserPrincipal userPrincipal, ProfileUpdateDTO sellerProfileUpdateDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
         String email = userPrincipal.getUsername();
         log.info("Updating profile for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)
@@ -95,6 +89,7 @@ public class SellerService {
     }
 
     public void updateSellerAddress(UserPrincipal userPrincipal,String addressId, AddressUpdateDTO addressUpdateDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
         String email = userPrincipal.getUsername();
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(()-> new ResourceNotFoundException(messageSource.getMessage("address.not.found", new Object[]{addressId}, locale)));
@@ -112,6 +107,7 @@ public class SellerService {
     }
 
     public void updateSellerPassword(UserPrincipal userPrincipal, UpdatePasswordDTO updatePasswordDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
         String email = userPrincipal.getUsername();
         log.info("Updating seller password for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)

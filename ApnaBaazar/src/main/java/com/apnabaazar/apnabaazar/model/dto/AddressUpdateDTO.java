@@ -1,6 +1,5 @@
 package com.apnabaazar.apnabaazar.model.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -13,22 +12,22 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AddressUpdateDTO {
-    @Size(max = 255, message = "Address line must not exceed 255 characters.")
+
+    @Size(max = 255, message = "{address.line.size}")
     private String addressLine;
 
-    @Size(max = 50, message = "City name must not exceed 50 characters.")
+    @Size(max = 50, message = "{city.size}")
     private String city;
 
-    @Size(max = 50, message = "State name must not exceed 50 characters.")
+    @Size(max = 50, message = "{state.size}")
     private String state;
 
-    @Size(max = 50, message = "Country name must not exceed 50 characters.")
+    @Size(max = 50, message = "{country.size}")
     private String country;
 
-    @Pattern(regexp = "^[0-9]{5,10}$", message = "Zip code must be 5 to 10 digits long and contain only numbers.")
+    @Pattern(regexp = "^[0-9]{5,10}$", message = "{zipcode.pattern}")
     private String zipCode;
 
-    @Size(max = 50, message = "Label name must not exceed 20 characters.")
+    @Size(max = 50, message = "{label.size}")
     private String label;
-
 }

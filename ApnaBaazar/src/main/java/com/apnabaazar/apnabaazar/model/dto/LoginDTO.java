@@ -11,20 +11,20 @@ import lombok.Setter;
 @Setter
 public class LoginDTO {
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    @Size(max = 255, message = "Email size exceeds.")
+    @NotBlank(message = "{email.required}")
+    @Email(message = "{email.invalid}")
+    @Size(max = 255, message = "{email.size}")
     @Pattern(
             regexp = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$",
-            message = "Invalid email format"
+            message = "{email.invalid}"
     )
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 15, message = "Password must be between 8 and 15 characters long")
+    @NotBlank(message = "{password.required}")
+    @Size(min = 8, max = 15, message = "{password.size}")
     @Pattern(
-            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
-            message = "Password must contain at least 1 uppercase, 1 lowercase, 1 digit, 1 special character and be 8–15 characters long."
+            regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
+            message = "{password.pattern}"
     )
     private String password;
 }

@@ -9,25 +9,26 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class AddressDTO {
-    @NotBlank(message = "Address line is required.")
-    @Size(max = 255, message = "Address line must not exceed 255 characters.")
+    @NotBlank(message = "{address.line.required}")
+    @Size(max = 255, message = "{address.line.size}")
     private String addressLine;
 
-    @NotBlank(message = "City is required.")
-    @Size(min = 3, max = 50, message = "City name must be between 3 and 50 characters.")
+    @NotBlank(message = "{city.required}")
+    @Size(min = 3, max = 50, message = "{city.size}")
     private String city;
 
-    @NotBlank(message = "State is required.")
-    @Size(min = 3, max = 50, message = "State name must be between 3 and 50 characters.")
+    @NotBlank(message = "{state.required}")
+    @Size(min = 3, max = 50, message = "{state.size}")
     private String state;
 
-    @NotBlank(message = "Country is required.")
-    @Size(min = 3, max = 50, message = "Country name must be between 3 and 50 characters.")
+    @NotBlank(message = "{country.required}")
+    @Size(min = 3, max = 50, message = "{country.size}")
     private String country;
 
-    @NotBlank(message = "Zip code is required.")
-    @Pattern(regexp = "^[0-9]{5,10}$", message = "Zip code must be 5 to 10 digits long and contain only numbers.")
+    @NotBlank(message = "{zipcode.required}")
+    @Pattern(regexp = "^[0-9]{5,10}$", message = "{zipcode.pattern}")
     private String zipCode;
+
 
     private String label;
 
