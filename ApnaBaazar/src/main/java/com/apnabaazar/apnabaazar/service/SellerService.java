@@ -114,6 +114,8 @@ public class SellerService {
                 .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
         if(!passwordEncoder.matches(updatePasswordDTO.getOldPassword(),seller.getPassword()))
             throw new PasswordMismatchException(messageSource.getMessage("password.old.incorrect", null, locale));
+        if(passwordEncoder.matches(updatePasswordDTO.getNewPassword(),seller.getPassword()))
+            throw new PasswordMismatchException(messageSource.getMessage("password.new.password.incorrect", null, locale));
         if(!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
             throw new PasswordMismatchException(messageSource.getMessage("password.mismatch", null, locale));
         }

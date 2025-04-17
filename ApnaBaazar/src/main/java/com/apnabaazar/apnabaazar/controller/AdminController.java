@@ -1,4 +1,5 @@
 package com.apnabaazar.apnabaazar.controller;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.MetadataFieldDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
@@ -90,4 +91,13 @@ public class AdminController {
     ) {
         return ResponseEntity.ok(adminService.getALlMetadataFields(max, offset, sort, order, query));
     }
+
+    @PostMapping("/category")
+    public ResponseEntity<GenericResponseDTO> addCategory(@RequestBody CategoryDTO categoryDTO) {
+        adminService.addCategory(categoryDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.added.success", null, locale)));
+    }
+
+//    @GetMapping("/category")
+
 }

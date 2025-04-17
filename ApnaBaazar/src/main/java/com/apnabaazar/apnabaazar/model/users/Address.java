@@ -3,6 +3,7 @@ package com.apnabaazar.apnabaazar.model.users;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Where;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 
 @Entity

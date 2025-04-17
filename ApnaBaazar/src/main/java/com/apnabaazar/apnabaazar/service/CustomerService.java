@@ -151,6 +151,8 @@ public class CustomerService {
 
         if (!passwordEncoder.matches(updatePasswordDTO.getOldPassword(), customer.getPassword()))
             throw new PasswordMismatchException(messageSource.getMessage("password.old.incorrect", null, locale));
+        if(passwordEncoder.matches(updatePasswordDTO.getNewPassword(),customer.getPassword()))
+            throw new PasswordMismatchException(messageSource.getMessage("password.new.password.incorrect", null, locale));
         if (!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
             throw new PasswordMismatchException(messageSource.getMessage("password.mismatch", null, locale));
         }

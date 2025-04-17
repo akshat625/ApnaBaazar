@@ -56,6 +56,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePasswordExpiredException(PasswordExpiredException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.UNAUTHORIZED);
     }
+
     @ExceptionHandler(ExpiredTokenException.class)
     public ResponseEntity<ErrorResponse> handleExpiredTokenException(ExpiredTokenException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.GONE);
@@ -107,12 +108,39 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(DuplicateRootCategoryException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateRootCategoryException(DuplicateRootCategoryException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
 
+    @ExceptionHandler(DuplicateSiblingCategoryException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateSiblingCategoryException(DuplicateSiblingCategoryException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
 
+    @ExceptionHandler(DuplicateInParentHierarchyException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateInParentHierarchyException(DuplicateInParentHierarchyException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ParentCategoryHasProductsException.class)
+    public ResponseEntity<ErrorResponse> handleParentCategoryHasProductsException(ParentCategoryHasProductsException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ParentCategoryNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleParentCategoryNotFoundException(ParentCategoryNotFoundException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
 
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status) {
-        ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(),status.value(),status.getReasonPhrase(),message);
+        ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(), message);
         return new ResponseEntity<>(errorResponse, status);
     }
 
