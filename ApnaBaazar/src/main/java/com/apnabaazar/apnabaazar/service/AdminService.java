@@ -4,7 +4,10 @@ import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.mapper.Mapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataField;
+import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.MetadataFieldDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
@@ -26,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -40,6 +44,7 @@ public class AdminService {
     private final CategoryMetadataFieldRepository categoryMetadataFieldRepository;
     private final CategoryRepository categoryRepository;
     private final EmailService emailService;
+    private final CategoryMetadataFieldValuesRepository  categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
 
 
@@ -193,6 +198,80 @@ public class AdminService {
 
     private boolean isParentCategoryAssociatedWithProduct(Category parent) {
         return productRepository.existsByCategory(parent);
+    }
+
+    //-------------------------------------------------------------------------------------------------------------------------------------------
+
+    public CategoryResponseDTO getCategory(String categoryId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
+
+        return buildCategoryResponseDTO(category);
+    }
+
+    private CategoryResponseDTO buildCategoryResponseDTO(Category category) {
+        CategoryResponseDTO responseDTO = new CategoryResponseDTO();
+        responseDTO.setCategoryId(category.getCategoryId());
+        responseDTO.setName(category.getName());
+
+        //parent
+
+        if (category.getParentCategory() != null)
+            responseDTO.setParentHierarchy(buildParentHierarchy(category));
+
+        // Add immediate children categories
+        if (!category.getSubCategories().isEmpty()) {
+            List<CategoryDTO> childrenDTOs = category.getSubCategories().stream()
+                    .map(child -> {
+                        CategoryDTO childDTO = new CategoryDTO();
+                        childDTO.setCategoryName(child.getName());
+                        childDTO.setCategoryId(child.getCategoryId());
+                        childDTO.setParentId(category.getCategoryId());
+                        return childDTO;
+                    })
+                    .toList();
+            responseDTO.setChildren(childrenDTOs);
+        }
+
+        // Add metadata fields with values
+        List<CategoryMetadataFieldValues> metadataValues =
+                categoryMetadataFieldValuesRepository.findByCategory(category);
+
+        if (metadataValues != null && !metadataValues.isEmpty()) {
+            List<CategoryMetadataFieldValueDTO> metadataFieldDTOs = metadataValues.stream()
+                    .map(value -> {
+                        CategoryMetadataFieldValueDTO fieldValueDTO = new CategoryMetadataFieldValueDTO();
+                        fieldValueDTO.setFieldId(value.getCategoryMetadataField().getId());
+                        fieldValueDTO.setFieldName(value.getCategoryMetadataField().getName());
+                        fieldValueDTO.setValues(List.of(value.getValues().split(",")));
+                        return fieldValueDTO;
+                    })
+                    .toList();
+            responseDTO.setMetadataFields(metadataFieldDTOs);
+        }
+
+        return responseDTO;
+
+
+
+    }
+
+    private List<CategoryDTO> buildParentHierarchy(Category category) {
+        List<CategoryDTO> hierarchy = new ArrayList<>();
+        Category current = category.getParentCategory();
+
+        while (current != null) {
+            CategoryDTO parentDTO = new CategoryDTO();
+            parentDTO.setCategoryName(current.getName());
+            parentDTO.setParentId(current.getParentCategory() != null ?
+                    current.getParentCategory().getCategoryId() : null);
+            parentDTO.setCategoryId(current.getCategoryId());
+            hierarchy.add(0, parentDTO); // Add at beginning to maintain root->leaf order
+            current = current.getParentCategory();
+        }
+        return hierarchy;
     }
 }
 
