@@ -273,6 +273,22 @@ public class AdminService {
         }
         return hierarchy;
     }
+
+    public List<CategoryResponseDTO> getAllCategories(int max, int offset, String sort, String order, String query) {
+        Sort.Direction direction = Sort.Direction.fromOptionalString(order).orElse(Sort.Direction.ASC);
+        Pageable pageable = PageRequest.of(offset, max, Sort.by(direction, sort));
+
+        Page<Category> categoryPage;
+        if (query != null && !query.isBlank()) {
+            categoryPage = categoryRepository.findByNameContainingIgnoreCase(query, pageable);
+        } else {
+            categoryPage = categoryRepository.findAll(pageable);
+        }
+
+        return categoryPage.stream()
+                .map(this::buildCategoryResponseDTO)
+                .toList();
+    }
 }
 
 

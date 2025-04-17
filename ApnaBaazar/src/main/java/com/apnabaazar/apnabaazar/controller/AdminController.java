@@ -104,4 +104,15 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getCategory(categoryId));
     }
 
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories(
+            @RequestParam(required = false, defaultValue = "10") int max,
+            @RequestParam(required = false, defaultValue = "0") int offset,
+            @RequestParam(required = false, defaultValue = "name") String sort,
+            @RequestParam(required = false, defaultValue = "asc") String order,
+            @RequestParam(required = false, defaultValue = "") String query
+    ) {
+        return ResponseEntity.ok(adminService.getAllCategories(max, offset, sort, order, query));
+    }
+
 }
