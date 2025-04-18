@@ -32,6 +32,7 @@ public class Category {
     @JoinColumn(name = "parent_category_id")
     private Category parentCategory;
 
+
     @OneToMany(mappedBy = "parentCategory")
     private Set<Category> subCategories = new HashSet<>();
 

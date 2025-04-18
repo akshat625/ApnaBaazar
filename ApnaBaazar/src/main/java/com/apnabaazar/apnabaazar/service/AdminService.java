@@ -5,10 +5,7 @@ import com.apnabaazar.apnabaazar.mapper.Mapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataField;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.MetadataFieldDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
@@ -32,6 +29,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -40,11 +38,11 @@ public class AdminService {
 
     private final CustomerRepository customerRepository;
     private final SellerRepository sellerRepository;
-    private  final ProductRepository productRepository;
+    private final ProductRepository productRepository;
     private final CategoryMetadataFieldRepository categoryMetadataFieldRepository;
     private final CategoryRepository categoryRepository;
     private final EmailService emailService;
-    private final CategoryMetadataFieldValuesRepository  categoryMetadataFieldValuesRepository;
+    private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
 
 
@@ -157,7 +155,7 @@ public class AdminService {
             if (parent == null)
                 throw new ParentCategoryNotFoundException(messageSource.getMessage("category.parent.not.found", new Object[]{parentId}, locale));
             if (isDuplicateInSiblings(parent, newCategoryName))
-                throw new DuplicateSiblingCategoryException(messageSource.getMessage("category.sibling.duplicate", new Object[]{newCategoryName, parentId}, locale));
+                throw new DuplicateSiblingCategoryException(messageSource.getMessage("category.sibling.duplicate", new Object[]{newCategoryName, parent.getName()}, locale));
             if (isParentCategoryAssociatedWithProduct(parent))
                 throw new ParentCategoryHasProductsException(messageSource.getMessage("category.parent.has.products", new Object[]{parentId}, locale));
             if (isDuplicateInHierarchy(parent, newCategoryName))
@@ -207,7 +205,6 @@ public class AdminService {
 
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
-
         return buildCategoryResponseDTO(category);
     }
 
@@ -255,7 +252,6 @@ public class AdminService {
         return responseDTO;
 
 
-
     }
 
     private List<CategoryDTO> buildParentHierarchy(Category category) {
@@ -288,6 +284,47 @@ public class AdminService {
         return categoryPage.stream()
                 .map(this::buildCategoryResponseDTO)
                 .toList();
+    }
+
+    public void updateCategory(CategoryUpdateDTO categoryUpdateDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Category category = categoryRepository.findById(categoryUpdateDTO.getCategoryId())
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryUpdateDTO.getCategoryId()}, locale)));
+
+
+        String updatedName = categoryUpdateDTO.getCategoryName();
+        Category parentCategory = category.getParentCategory();
+
+
+        if (isDuplicateInRoot(updatedName))
+            throw new DuplicateRootCategoryException(messageSource.getMessage("category.root.duplicate", new Object[]{updatedName}, locale));
+
+        if (isDuplicateInSiblings(parentCategory, updatedName))
+            throw new DuplicateSiblingCategoryException(messageSource.getMessage("category.sibling.duplicate", new Object[]{updatedName,parentCategory.getName()}, locale));
+        if (isDuplicateInHierarchy(parentCategory, updatedName))
+            throw new DuplicateInParentHierarchyException(messageSource.getMessage("category.hierarchy.duplicate", new Object[]{updatedName}, locale));
+
+        if (isDuplicateInDescendants(category, updatedName)) {
+            throw new DuplicateInParentHierarchyException(messageSource.getMessage("category.descendants.duplicate", new Object[]{updatedName}, locale));
+        }
+
+        category.setName(updatedName);
+        categoryRepository.save(category);
+    }
+
+    private boolean isDuplicateInDescendants(Category parent, String updatedName) {
+        if (parent.getSubCategories().isEmpty())
+            return false;
+
+        for (Category child : parent.getSubCategories()) {
+            if (child.getName().equals(updatedName))
+                return true;
+
+            isDuplicateInDescendants(child, updatedName);
+        }
+        return false;
+
     }
 }
 

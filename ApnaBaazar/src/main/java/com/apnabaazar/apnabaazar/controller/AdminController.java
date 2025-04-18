@@ -1,6 +1,7 @@
 package com.apnabaazar.apnabaazar.controller;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.MetadataFieldDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
@@ -113,6 +114,12 @@ public class AdminController {
             @RequestParam(required = false, defaultValue = "") String query
     ) {
         return ResponseEntity.ok(adminService.getAllCategories(max, offset, sort, order, query));
+    }
+
+    @PutMapping("/category")
+    public ResponseEntity<GenericResponseDTO> updateCategory(@Valid @RequestBody CategoryUpdateDTO  categoryUpdateDTO) {
+            adminService.updateCategory(categoryUpdateDTO);
+            return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.update.success", null, locale)));
     }
 
 }
