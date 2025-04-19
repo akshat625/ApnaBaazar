@@ -4,15 +4,20 @@ import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
+import com.apnabaazar.apnabaazar.model.categories.Category;
+import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Seller;
-import com.apnabaazar.apnabaazar.repository.AddressRepository;
-import com.apnabaazar.apnabaazar.repository.SellerRepository;
-import com.apnabaazar.apnabaazar.repository.UserRepository;
+import com.apnabaazar.apnabaazar.repository.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,6 +44,8 @@ public class SellerService {
 
     private final SellerRepository sellerRepository;
     private final AddressRepository addressRepository;
+    private final CategoryRepository categoryRepository;
+    private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final S3Service s3Service;
     private final BCryptPasswordEncoder passwordEncoder;
     private final MessageSource messageSource;
@@ -125,5 +135,73 @@ public class SellerService {
         sellerRepository.save(seller);
 
         log.info("Seller password updated successfully for: {}", email);
+    }
+
+    public List<CategoryResponseDTO> getAllCategories() {
+        // Find all categories
+        List<Category> allCategories = categoryRepository.findAll();
+
+        // Filter to get only leaf categories (those without subcategories)
+        List<Category> leafCategories = allCategories.stream()
+                .filter(category -> category.getSubCategories() == null || category.getSubCategories().isEmpty())
+                .collect(Collectors.toList());
+
+        // Map leaf categories to response DTOs with full metadata and hierarchy
+        List<CategoryResponseDTO> categoryResponseDTOs = leafCategories.stream()
+                .map(this::buildCategoryResponseDTO)
+                .collect(Collectors.toList());
+
+        return categoryResponseDTOs;
+    }
+
+    private CategoryResponseDTO buildCategoryResponseDTO(Category category) {
+        CategoryResponseDTO responseDTO = new CategoryResponseDTO();
+        responseDTO.setCategoryId(category.getCategoryId());
+        responseDTO.setName(category.getName());
+
+        // Add parent hierarchy
+        if (category.getParentCategory() != null) {
+            responseDTO.setParentHierarchy(buildParentHierarchy(category));
+        }
+
+        // Collect metadata fields from this category and all parent categories
+        List<CategoryMetadataFieldValueDTO> metadataDTOs = new ArrayList<>();
+        Category current = category;
+        while (current != null) {
+            List<CategoryMetadataFieldValues> metadataValues = categoryMetadataFieldValuesRepository.findByCategory(current);
+            if (metadataValues != null && !metadataValues.isEmpty()) {
+                metadataDTOs.addAll(
+                        metadataValues.stream()
+                                .map(value -> {
+                                    CategoryMetadataFieldValueDTO dto = new CategoryMetadataFieldValueDTO();
+                                    dto.setFieldId(value.getCategoryMetadataField().getId());
+                                    dto.setFieldName(value.getCategoryMetadataField().getName());
+                                    dto.setValues(value.getValues());
+                                    return dto;
+                                })
+                                .collect(Collectors.toList())
+                );
+            }
+            current = current.getParentCategory();
+        }
+        responseDTO.setMetadataFields(metadataDTOs);
+
+        return responseDTO;
+    }
+
+    private List<CategoryDTO> buildParentHierarchy(Category category) {
+        List<CategoryDTO> hierarchy = new ArrayList<>();
+        Category current = category.getParentCategory();
+
+        while (current != null) {
+            CategoryDTO parentDTO = new CategoryDTO();
+            parentDTO.setCategoryName(current.getName());
+            parentDTO.setCategoryId(current.getCategoryId());
+            parentDTO.setParentId(current.getParentCategory() != null ?
+                    current.getParentCategory().getCategoryId() : null);
+            hierarchy.add(0, parentDTO); // Add at beginning to maintain root->leaf order
+            current = current.getParentCategory();
+        }
+        return hierarchy;
     }
 }
