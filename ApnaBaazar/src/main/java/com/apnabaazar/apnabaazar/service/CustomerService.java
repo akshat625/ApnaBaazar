@@ -1,13 +1,16 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.exceptions.CategoryNotFoundException;
 import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
 import com.apnabaazar.apnabaazar.mapper.CustomerMapper;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
+import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
@@ -31,6 +34,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -42,6 +46,8 @@ import java.util.Set;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final CategoryRepository categoryRepository;
+    private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
@@ -199,4 +205,36 @@ public class CustomerService {
         customerRepository.save(customer);
         log.info("Customer profile updated successfully for: {}", email);
     }
+
+
+    public List<CustomerCategoryResponseDTO> getAllCategories(String categoryId) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
+        if (categoryId == null || categoryId.isBlank()) {
+            List<Category> rootCategories = categoryRepository.findByParentCategory_CategoryId(null);
+            return convertToCustomerDTOList(rootCategories);
+        }
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
+
+        List<Category> siblingCategories = categoryRepository
+                .findByParentCategory_CategoryId(category.getParentCategory().getCategoryId());
+
+        return convertToCustomerDTOList(siblingCategories);
+    }
+
+
+    private List<CustomerCategoryResponseDTO> convertToCustomerDTOList(List<Category> categories) {
+        return categories.stream()
+                .map(cat -> {
+                    CustomerCategoryResponseDTO dto = new CustomerCategoryResponseDTO();
+                    dto.setId(cat.getCategoryId());
+                    dto.setName(cat.getName());
+                    return dto;
+                })
+                .toList();
+    }
+
 }

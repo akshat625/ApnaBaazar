@@ -5,6 +5,7 @@ import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
@@ -99,5 +100,10 @@ public class CustomerController {
     public ResponseEntity<GenericResponseDTO> updateCustomerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         customerService.updateCustomerPassword(userPrincipal, updatePasswordDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<CustomerCategoryResponseDTO>> getAllCategories(@RequestParam(required = false) String categoryId) {
+        return ResponseEntity.ok(customerService.getAllCategories(categoryId));
     }
 }
