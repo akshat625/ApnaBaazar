@@ -4,6 +4,7 @@ import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.mapper.Mapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataField;
+import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValueId;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
@@ -26,10 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Service
@@ -87,7 +85,6 @@ public class AdminService {
     }
 
     public ResponseEntity<GenericResponseDTO> deActivateCustomer(String id) throws MessagingException {
-
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Customer not found with this ID."));
         if (!customer.isActive()) {
@@ -214,11 +211,10 @@ public class AdminService {
         responseDTO.setName(category.getName());
 
         //parent
-
         if (category.getParentCategory() != null)
             responseDTO.setParentHierarchy(buildParentHierarchy(category));
 
-        // Add immediate children categories
+        //adding immediate children categories
         if (!category.getSubCategories().isEmpty()) {
             List<CategoryDTO> childrenDTOs = category.getSubCategories().stream()
                     .map(child -> {
@@ -232,25 +228,28 @@ public class AdminService {
             responseDTO.setChildren(childrenDTOs);
         }
 
-        // Add metadata fields with values
-        List<CategoryMetadataFieldValues> metadataValues =
-                categoryMetadataFieldValuesRepository.findByCategory(category);
-
-        if (metadataValues != null && !metadataValues.isEmpty()) {
-            List<CategoryMetadataFieldValueDTO> metadataFieldDTOs = metadataValues.stream()
-                    .map(value -> {
-                        CategoryMetadataFieldValueDTO fieldValueDTO = new CategoryMetadataFieldValueDTO();
-                        fieldValueDTO.setFieldId(value.getCategoryMetadataField().getId());
-                        fieldValueDTO.setFieldName(value.getCategoryMetadataField().getName());
-                        fieldValueDTO.setValues(List.of(value.getValues().split(",")));
-                        return fieldValueDTO;
-                    })
-                    .toList();
-            responseDTO.setMetadataFields(metadataFieldDTOs);
+        List<CategoryMetadataFieldValueDTO> metadataDTOs = new ArrayList<>();
+        Category current = category;
+        while (current != null) {
+            List<CategoryMetadataFieldValues> metadataValues = categoryMetadataFieldValuesRepository.findByCategory(current);
+            if (metadataValues != null && !metadataValues.isEmpty()) {
+                metadataDTOs.addAll(
+                        metadataValues.stream()
+                                .map(value -> {
+                                    CategoryMetadataFieldValueDTO dto = new CategoryMetadataFieldValueDTO();
+                                    dto.setFieldId(value.getCategoryMetadataField().getId());
+                                    dto.setFieldName(value.getCategoryMetadataField().getName());
+                                    dto.setValues(value.getValues());
+                                    return dto;
+                                })
+                                .toList()
+                );
+            }
+            current = current.getParentCategory();
         }
+        responseDTO.setMetadataFields(metadataDTOs);
 
         return responseDTO;
-
 
     }
 
@@ -292,19 +291,16 @@ public class AdminService {
         Category category = categoryRepository.findById(categoryUpdateDTO.getCategoryId())
                 .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryUpdateDTO.getCategoryId()}, locale)));
 
-
         String updatedName = categoryUpdateDTO.getCategoryName();
         Category parentCategory = category.getParentCategory();
 
 
         if (isDuplicateInRoot(updatedName))
             throw new DuplicateRootCategoryException(messageSource.getMessage("category.root.duplicate", new Object[]{updatedName}, locale));
-
         if (isDuplicateInSiblings(parentCategory, updatedName))
             throw new DuplicateSiblingCategoryException(messageSource.getMessage("category.sibling.duplicate", new Object[]{updatedName,parentCategory.getName()}, locale));
         if (isDuplicateInHierarchy(parentCategory, updatedName))
             throw new DuplicateInParentHierarchyException(messageSource.getMessage("category.hierarchy.duplicate", new Object[]{updatedName}, locale));
-
         if (isDuplicateInDescendants(category, updatedName)) {
             throw new DuplicateInParentHierarchyException(messageSource.getMessage("category.descendants.duplicate", new Object[]{updatedName}, locale));
         }
@@ -324,8 +320,9 @@ public class AdminService {
             isDuplicateInDescendants(child, updatedName);
         }
         return false;
-
     }
+
+
 }
 
 
