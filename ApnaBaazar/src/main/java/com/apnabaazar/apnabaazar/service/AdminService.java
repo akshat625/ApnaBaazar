@@ -394,12 +394,10 @@ public class AdminService {
 
             Set<String> existingValues = new HashSet<>(Arrays.asList(existingFieldValue.getValues().split(",")));
 
-            for (String newValue : uniqueNewValues) {
-                if (existingValues.contains(newValue)) {
-                    throw new DuplicateMetadataAssignmentException("Value " + newValue +
-                            " already exists for field " + categoryMetadataField.getName());
-                }
-            }
+            for (String newValue : uniqueNewValues)
+                if (existingValues.contains(newValue))
+                    throw new DuplicateMetadataAssignmentException(messageSource.getMessage("metadata.value.duplicate", new Object[]{newValue, categoryMetadataField.getName()}, locale));
+
 
             // Combine the values
             existingValues.addAll(uniqueNewValues);
