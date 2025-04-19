@@ -148,6 +148,15 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(DuplicateMetadataAssignmentException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateMetadata(DuplicateMetadataAssignmentException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(InvalidMetadataFieldValueException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidMetadataValue(InvalidMetadataFieldValueException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status) {
         ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(), message);

@@ -322,7 +322,55 @@ public class AdminService {
         return false;
     }
 
+    public void addCategoryMetadataFieldForCategory(String categoryId, List<CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
 
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
+
+        for (CategoryMetadataFieldValueDTO fieldValueDTO : categoryMetadataFieldValueDTO) {
+            CategoryMetadataField categoryMetadataField = categoryMetadataFieldRepository.findById(fieldValueDTO.getFieldId())
+                    .orElseThrow(() -> new MetadataFieldNotFoundException(messageSource.getMessage("metadata.field.not.found", new Object[]{fieldValueDTO.getFieldId()},locale)));
+
+            Set<String> uniqueValues = getStrings(fieldValueDTO, categoryMetadataField, locale);
+
+
+            CategoryMetadataFieldValueId id = new CategoryMetadataFieldValueId(categoryId,fieldValueDTO.getFieldId());
+
+
+            CategoryMetadataFieldValues fieldValue = new CategoryMetadataFieldValues();
+            fieldValue.setId(id);
+            fieldValue.setCategory(category);
+            fieldValue.setCategoryMetadataField(categoryMetadataField);
+            fieldValue.setValues(String.join(",", uniqueValues));
+
+            categoryMetadataFieldValuesRepository.save(fieldValue);
+        }
+
+    }
+
+    private Set<String> getStrings(CategoryMetadataFieldValueDTO fieldValueDTO, CategoryMetadataField categoryMetadataField, Locale locale) {
+        String values = fieldValueDTO.getValues();
+
+        if(values ==null || values.isBlank())
+            throw new InvalidMetadataFieldValueException(messageSource.getMessage("metadata.values.required", new Object[]{categoryMetadataField.getName()}, locale));
+
+        String[]  valuesArray = values.split(",");
+        if (valuesArray.length == 0)
+            throw new InvalidMetadataFieldValueException(messageSource.getMessage("metadata.values.required", new Object[]{categoryMetadataField.getName()}, locale));
+
+        Set<String> uniqueValues = new HashSet<>();
+
+        for(String value : valuesArray){
+            String trimmedValue = value.trim();
+            if(trimmedValue.isEmpty())  //for cases : 1,2,3,,4
+                continue;
+            if(!uniqueValues.add(trimmedValue))
+                throw new DuplicateMetadataAssignmentException(messageSource.getMessage("metadata.values.duplicate",new Object[]{trimmedValue, categoryMetadataField.getName()}, locale));
+        }
+        return uniqueValues;
+    }
 }
 
 

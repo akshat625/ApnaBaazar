@@ -119,6 +119,10 @@ public class AdminController {
             return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.update.success", null, locale)));
     }
 
-
+    @PostMapping("/category/{categoryId}")
+    public ResponseEntity<GenericResponseDTO> addCategoryMetadataFieldForCategory(@PathVariable String categoryId, @Valid @RequestBody List<CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
+        adminService.addCategoryMetadataFieldForCategory(categoryId, categoryMetadataFieldValueDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.metadata.added.success", null, locale)));
+    }
 
 }
