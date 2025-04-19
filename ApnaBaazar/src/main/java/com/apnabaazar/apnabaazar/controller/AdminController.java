@@ -124,5 +124,11 @@ public class AdminController {
         adminService.addCategoryMetadataFieldForCategory(categoryId, categoryMetadataFieldValueDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.metadata.added.success", null, locale)));
     }
+    @PutMapping("/category/{categoryId}")
+    public ResponseEntity<GenericResponseDTO> updateCategoryMetadataFieldForCategory(@PathVariable String categoryId, @Valid @RequestBody List<CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
+        adminService.updateCategoryMetadataFieldForCategory(categoryId, categoryMetadataFieldValueDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.metadata.updated.success", null, locale)));
+    }
+
 
 }

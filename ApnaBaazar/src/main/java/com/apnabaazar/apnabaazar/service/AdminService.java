@@ -362,6 +362,7 @@ public class AdminService {
 
         Set<String> uniqueValues = new HashSet<>();
 
+
         for(String value : valuesArray){
             String trimmedValue = value.trim();
             if(trimmedValue.isEmpty())  //for cases : 1,2,3,,4
@@ -370,6 +371,43 @@ public class AdminService {
                 throw new DuplicateMetadataAssignmentException(messageSource.getMessage("metadata.values.duplicate",new Object[]{trimmedValue, categoryMetadataField.getName()}, locale));
         }
         return uniqueValues;
+    }
+
+    public void updateCategoryMetadataFieldForCategory(String categoryId, List<CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
+
+        for(CategoryMetadataFieldValueDTO fieldValueDTO : categoryMetadataFieldValueDTO) {
+            CategoryMetadataField categoryMetadataField = categoryMetadataFieldRepository.findById(fieldValueDTO.getFieldId())
+                    .orElseThrow(() -> new MetadataFieldNotFoundException(messageSource.getMessage("metadata.field.not.found", new Object[]{fieldValueDTO.getFieldId()},locale)));
+
+            CategoryMetadataFieldValueId id = new CategoryMetadataFieldValueId(categoryId,fieldValueDTO.getFieldId());
+
+            if(!categoryMetadataFieldValuesRepository.existsById(id))
+                throw new MetadataFieldNotAssociatedWithCategoryException(messageSource.getMessage("metadata.not.associated.with.category", new Object[]{categoryMetadataField.getName(), category.getName()}, locale));
+
+            CategoryMetadataFieldValues existingFieldValue = categoryMetadataFieldValuesRepository.findById(id).get();
+
+            Set<String> uniqueNewValues = getStrings(fieldValueDTO, categoryMetadataField, locale);
+
+            Set<String> existingValues = new HashSet<>(Arrays.asList(existingFieldValue.getValues().split(",")));
+
+            for (String newValue : uniqueNewValues) {
+                if (existingValues.contains(newValue)) {
+                    throw new DuplicateMetadataAssignmentException("Value " + newValue +
+                            " already exists for field " + categoryMetadataField.getName());
+                }
+            }
+
+            // Combine the values
+            existingValues.addAll(uniqueNewValues);
+
+            // Update the values
+            existingFieldValue.setValues(String.join(",", existingValues));
+            categoryMetadataFieldValuesRepository.save(existingFieldValue);
+        }
     }
 }
 

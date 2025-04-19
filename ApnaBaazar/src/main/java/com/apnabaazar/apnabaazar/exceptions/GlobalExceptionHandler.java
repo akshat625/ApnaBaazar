@@ -158,6 +158,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(MetadataFieldNotAssociatedWithCategoryException.class)
+    public ResponseEntity<ErrorResponse> handleMetadataFieldNotAssociatedWithCategoryException(MetadataFieldNotAssociatedWithCategoryException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status) {
         ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(), message);
         return new ResponseEntity<>(errorResponse, status);
