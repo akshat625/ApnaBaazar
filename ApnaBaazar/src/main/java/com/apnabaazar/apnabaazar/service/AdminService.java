@@ -411,7 +411,21 @@ public class AdminService {
 
 
 
+    public void deactivateProduct(String productId) throws MessagingException {
+        Locale locale = LocaleContextHolder.getLocale();
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
 
+        if (!product.isActive()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.already.inactive", new Object[]{productId}, locale));
+        }
+
+        product.setActive(false);
+        productRepository.save(product);
+
+        String sellerEmail = product.getSeller().getEmail();
+        emailService.sendProductDeactivationEmail(sellerEmail, "Product Deactivated", product);
+    }
 
     public void activateProduct(String productId) throws MessagingException {
         Locale locale = LocaleContextHolder.getLocale();

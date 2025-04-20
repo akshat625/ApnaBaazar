@@ -132,6 +132,12 @@ public class AdminController {
 
 
 
+    @PutMapping("/product/deactivate/{productId}")
+    public ResponseEntity<GenericResponseDTO> deactivateProduct(@PathVariable String productId) throws MessagingException {
+        adminService.deactivateProduct(productId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.deactivated.success", null, locale)));
+    }
+
     @PutMapping("/product/activate/{productId}")
     public ResponseEntity<GenericResponseDTO> activateProduct(@PathVariable String productId) throws MessagingException {
         adminService.activateProduct(productId);
