@@ -3,10 +3,7 @@ package com.apnabaazar.apnabaazar.model.products;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.users.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -22,6 +19,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
 public class Product {
 
@@ -48,7 +46,7 @@ public class Product {
     @OneToMany(mappedBy = "product")
     private Set<ProductReview>  productReviews = new HashSet<>();
 
-    private boolean isCancellable;
+    private boolean cancellable = false;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -56,7 +54,7 @@ public class Product {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    private boolean isReturnable;
+    private boolean returnable  = false;
 
     private String brand;
 

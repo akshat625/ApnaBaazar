@@ -1,8 +1,7 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
-import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
-import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
+import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
@@ -12,11 +11,16 @@ import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.model.products.Product;
 import com.apnabaazar.apnabaazar.model.users.Address;
+import com.apnabaazar.apnabaazar.model.users.Role;
 import com.apnabaazar.apnabaazar.model.users.Seller;
+import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.*;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,13 +45,16 @@ import java.util.stream.Collectors;
 public class SellerService {
 
     private final SellerRepository sellerRepository;
+    private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final S3Service s3Service;
     private final BCryptPasswordEncoder passwordEncoder;
     private final MessageSource messageSource;
-
+    private final EmailService emailService;
+    private final RoleRepository roleRepository;
 
 
     @Value("${aws.s3.default-seller-image}")
@@ -203,5 +208,43 @@ public class SellerService {
             current = current.getParentCategory();
         }
         return hierarchy;
+    }
+
+    public void addProduct(UserPrincipal userPrincipal, @Valid ProductDTO productDTO) throws MessagingException {
+        Locale locale = LocaleContextHolder.getLocale();
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+        Category category = categoryRepository.findById(productDTO.getCategoryId())
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{productDTO.getCategoryId()}, locale)));
+
+        if(!category.getSubCategories().isEmpty())
+            throw new InvalidLeafCategoryException(messageSource.getMessage("category.not.leaf", new Object[]{category.getName()}, locale));
+
+        boolean isDuplicate = productRepository.existsByNameAndBrandAndCategoryAndSeller(productDTO.getName(),productDTO.getBrand(),category,seller);
+        if (isDuplicate)
+            throw new DuplicateProductException(messageSource.getMessage("product.duplicate.name", new Object[]{productDTO.getName(), productDTO.getBrand()}, locale));
+
+        Product product = Product.builder()
+                .name(productDTO.getName())
+                .brand(productDTO.getBrand())
+                .category(category)
+                .seller(seller)
+                .cancellable(productDTO.isCancellable())
+                .returnable(productDTO.isReturnable())
+                .isActive(false)
+                .build();
+
+        productRepository.save(product);
+
+
+        Optional<Role> role = roleRepository.findByAuthority("ROLE_ADMIN");
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(role.get());
+        User admin = userRepository.findByRoles(roles);
+        emailService.sendProductActivationMail(admin.getEmail(),"Product Added");
+
     }
 }

@@ -6,11 +6,13 @@ import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -90,6 +92,14 @@ public class SellerController {
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryResponseDTO>> getAllCategories(){
         return ResponseEntity.ok(sellerService.getAllCategories());
+    }
+
+    //------------------------------------------------------------------------------------------------
+
+    @PostMapping("/product")
+    public ResponseEntity<GenericResponseDTO> addProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductDTO productDTO) throws MessagingException {
+        sellerService.addProduct(userPrincipal, productDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.added.success", null,locale)));
     }
 
 

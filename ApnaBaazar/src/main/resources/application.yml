@@ -70,5 +70,6 @@ aws:
     default-customer-image: https://apna-baazar-bucket.s3.amazonaws.com/users/seller_default.jpg
 
 
-
+server:
+  port: 8085
 

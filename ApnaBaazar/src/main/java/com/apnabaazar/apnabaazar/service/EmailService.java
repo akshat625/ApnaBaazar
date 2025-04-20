@@ -125,4 +125,20 @@ public class EmailService {
 
         emailSender.send(message);
     }
+
+    @Async
+    public void sendProductActivationMail(String to, String subject) throws MessagingException {
+        MimeMessage message = emailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+        String emailContent = String.format(
+                "<h3>Product Added</h3>" +
+                        "<p>A new product has been added. Please review and active it.</p>"
+        );
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(emailContent, true);
+
+        emailSender.send(message);
+    }
 }

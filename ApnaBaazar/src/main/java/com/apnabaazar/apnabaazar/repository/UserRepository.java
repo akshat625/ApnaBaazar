@@ -15,7 +15,6 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     Optional<User> findByEmail(String email);
     
-    Optional<User> findByRoles(Set<Role> roles);
 
     Optional<User> findByEmailAndRoles(String email, Set<Role> roles);
 
@@ -28,4 +27,5 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByGstin(@Param("gstin") String gstin);
 
 
+    User findByRoles(Set<Role> roles);
 }
