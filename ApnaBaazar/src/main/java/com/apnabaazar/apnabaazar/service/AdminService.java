@@ -10,6 +10,7 @@ import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
+import com.apnabaazar.apnabaazar.model.products.Product;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.*;
@@ -406,6 +407,26 @@ public class AdminService {
             existingFieldValue.setValues(String.join(",", existingValues));
             categoryMetadataFieldValuesRepository.save(existingFieldValue);
         }
+    }
+
+
+
+
+
+    public void activateProduct(String productId) throws MessagingException {
+        Locale locale = LocaleContextHolder.getLocale();
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        if (product.isActive()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.already.active", new Object[]{productId}, locale));
+        }
+
+        product.setActive(true);
+        productRepository.save(product);
+
+        String sellerEmail = product.getSeller().getEmail();
+        emailService.sendProductActivationEmail(sellerEmail, "Product Activated", product);
     }
 }
 

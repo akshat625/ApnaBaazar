@@ -244,7 +244,7 @@ public class SellerService {
         Set<Role> roles = new HashSet<>();
         roles.add(role.get());
         User admin = userRepository.findByRoles(roles);
-        emailService.sendProductActivationMail(admin.getEmail(), "Product Added");
+        emailService.sendProductAddedMail(admin.getEmail(), "Product Added");
 
     }
 
