@@ -75,7 +75,7 @@ public class SellerService {
             String imageUrl = s3Service.getProfileImageUrl(email, defaultSellerImage);
             log.info("Seller profile image URL resolved: {}", imageUrl);
 
-            return ResponseEntity.ok(SellerMapper.toSellerProfileDTO(seller,imageUrl));
+            return ResponseEntity.ok(SellerMapper.toSellerProfileDTO(seller, imageUrl));
         } catch (Exception e) {
             log.error("Error retrieving seller profile for {}: {}", email, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
@@ -92,25 +92,25 @@ public class SellerService {
         String email = userPrincipal.getUsername();
         log.info("Updating profile for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)
-                .orElseThrow(()-> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
-        if (sellerProfileUpdateDTO != null){
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+        if (sellerProfileUpdateDTO != null) {
             seller.setFirstName(getUpdatedValue(sellerProfileUpdateDTO.getFirstName(), seller.getFirstName()));
             seller.setMiddleName(getUpdatedValue(sellerProfileUpdateDTO.getMiddleName(), seller.getMiddleName()));
             seller.setLastName(getUpdatedValue(sellerProfileUpdateDTO.getLastName(), seller.getLastName()));
             seller.setCompanyContact(getUpdatedValue(sellerProfileUpdateDTO.getContact(), seller.getCompanyContact()));
-       }
+        }
         sellerRepository.save(seller);
         log.info("Seller profile updated successfully for: {}", email);
     }
 
-    public void updateSellerAddress(UserPrincipal userPrincipal,String addressId, AddressUpdateDTO addressUpdateDTO) {
+    public void updateSellerAddress(UserPrincipal userPrincipal, String addressId, AddressUpdateDTO addressUpdateDTO) {
         Locale locale = LocaleContextHolder.getLocale();
         String email = userPrincipal.getUsername();
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(()-> new ResourceNotFoundException(messageSource.getMessage("address.not.found", new Object[]{addressId}, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("address.not.found", new Object[]{addressId}, locale)));
         log.info("Updating address [ID: {}] for seller: {}", addressId, email);
 
-        if (addressUpdateDTO != null){
+        if (addressUpdateDTO != null) {
             address.setAddressLine(getUpdatedValue(addressUpdateDTO.getAddressLine(), address.getAddressLine()));
             address.setCity(getUpdatedValue(addressUpdateDTO.getCity(), address.getCity()));
             address.setState(getUpdatedValue(addressUpdateDTO.getState(), address.getState()));
@@ -127,11 +127,11 @@ public class SellerService {
         log.info("Updating seller password for seller: {}", email);
         Seller seller = sellerRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
-        if(!passwordEncoder.matches(updatePasswordDTO.getOldPassword(),seller.getPassword()))
+        if (!passwordEncoder.matches(updatePasswordDTO.getOldPassword(), seller.getPassword()))
             throw new PasswordMismatchException(messageSource.getMessage("password.old.incorrect", null, locale));
-        if(passwordEncoder.matches(updatePasswordDTO.getNewPassword(),seller.getPassword()))
+        if (passwordEncoder.matches(updatePasswordDTO.getNewPassword(), seller.getPassword()))
             throw new PasswordMismatchException(messageSource.getMessage("password.new.password.incorrect", null, locale));
-        if(!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
+        if (!updatePasswordDTO.getNewPassword().equals(updatePasswordDTO.getConfirmPassword())) {
             throw new PasswordMismatchException(messageSource.getMessage("password.mismatch", null, locale));
         }
 
@@ -219,10 +219,10 @@ public class SellerService {
         Category category = categoryRepository.findById(productDTO.getCategoryId())
                 .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{productDTO.getCategoryId()}, locale)));
 
-        if(!category.getSubCategories().isEmpty())
+        if (!category.getSubCategories().isEmpty())
             throw new InvalidLeafCategoryException(messageSource.getMessage("category.not.leaf", new Object[]{category.getName()}, locale));
 
-        boolean isDuplicate = productRepository.existsByNameAndBrandAndCategoryAndSeller(productDTO.getName(),productDTO.getBrand(),category,seller);
+        boolean isDuplicate = productRepository.existsByNameAndBrandAndCategoryAndSeller(productDTO.getName(), productDTO.getBrand(), category, seller);
         if (isDuplicate)
             throw new DuplicateProductException(messageSource.getMessage("product.duplicate.name", new Object[]{productDTO.getName(), productDTO.getBrand()}, locale));
 
@@ -233,7 +233,7 @@ public class SellerService {
                 .seller(seller)
                 .cancellable(productDTO.isCancellable())
                 .returnable(productDTO.isReturnable())
-                .isActive(false)
+                .description(productDTO.getDescription())
                 .build();
 
         productRepository.save(product);
@@ -244,7 +244,42 @@ public class SellerService {
         Set<Role> roles = new HashSet<>();
         roles.add(role.get());
         User admin = userRepository.findByRoles(roles);
-        emailService.sendProductActivationMail(admin.getEmail(),"Product Added");
+        emailService.sendProductActivationMail(admin.getEmail(), "Product Added");
 
+    }
+
+    public ProductDTO getProduct(UserPrincipal userPrincipal, String productId) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        if (product.getSeller() != seller)
+            throw new InvalidSellerException(messageSource.getMessage("seller.not.associated.with.product", new Object[]{product.getName()}, locale));
+
+        if (product.isDeleted())
+            throw new ProductNotFoundException(messageSource.getMessage("product.deleted.product", new Object[]{productId}, locale));
+
+        Category category = categoryRepository.findById(product.getCategory().getCategoryId())
+                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{product.getCategory().getCategoryId()}, locale)));
+
+
+        CategoryDTO categoryDTO = new CategoryDTO();
+        categoryDTO.setCategoryId(category.getCategoryId());
+        categoryDTO.setCategoryName(category.getName());
+
+        return ProductDTO.builder()
+                .category(categoryDTO)
+                .name(product.getName())
+                .brand(product.getBrand())
+                .description(product.getDescription())
+                .cancellable(product.isCancellable())
+                .returnable(product.isReturnable())
+                .active(product.isActive())
+                .build();
     }
 }

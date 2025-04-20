@@ -58,7 +58,7 @@ public class Product {
 
     private String brand;
 
-    private boolean isActive = true;
+    private boolean active = false;
 
     private boolean isDeleted = false;
 }

@@ -44,19 +44,19 @@ public class SellerController {
     }
 
     @GetMapping("/test")
-    public String testCustomer(){
-        return messageSource.getMessage("seller.hello.message", new Object[]{},locale);
+    public String testCustomer() {
+        return messageSource.getMessage("seller.hello.message", new Object[]{}, locale);
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<SellerProfileDTO>  getSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal){
+    public ResponseEntity<SellerProfileDTO> getSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return sellerService.getSellerProfile(userPrincipal);
     }
 
     @PostMapping("/upload/profile-image")
     public ResponseEntity<GenericResponseDTO> uploadSellerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
-        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(),file);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key},locale) + key));
+        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(), file);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key}, locale) + key));
 
 
     }
@@ -74,23 +74,23 @@ public class SellerController {
     @PutMapping("/profile")
     public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO sellerProfileUpdateDTO) {
         sellerService.updateSellerProfile(userPrincipal, sellerProfileUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null,locale)));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null, locale)));
     }
 
     @PutMapping("/address/{addressId}")
-    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId, @Valid  @RequestBody AddressUpdateDTO addressUpdateDTO) {
-        sellerService.updateSellerAddress(userPrincipal,addressId,addressUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null,locale)));
+    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) {
+        sellerService.updateSellerAddress(userPrincipal, addressId, addressUpdateDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null, locale)));
     }
 
     @PutMapping("/password")
     public ResponseEntity<GenericResponseDTO> updateSellerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         sellerService.updateSellerPassword(userPrincipal, updatePasswordDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null, locale)));
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories(){
+    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories() {
         return ResponseEntity.ok(sellerService.getAllCategories());
     }
 
@@ -99,10 +99,13 @@ public class SellerController {
     @PostMapping("/product")
     public ResponseEntity<GenericResponseDTO> addProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductDTO productDTO) throws MessagingException {
         sellerService.addProduct(userPrincipal, productDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.added.success", null,locale)));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.added.success", null, locale)));
     }
 
-
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId)  {
+        return ResponseEntity.ok(sellerService.getProduct(userPrincipal,productId));
+    }
 
 
 }

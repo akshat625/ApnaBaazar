@@ -1,6 +1,8 @@
 package com.apnabaazar.apnabaazar.model.dto.category_dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,6 +10,7 @@ import lombok.Setter;
 @Setter
 public class CategoryDTO {
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String parentId;
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
