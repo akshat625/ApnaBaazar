@@ -27,9 +27,17 @@ public class ProductVariationDTO {
     @DecimalMin(value = "0.0", inclusive = true, message = "{price.min.zero}")
     private Double price;
 
+
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String productName;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String brand;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String description;
+
 
 
 }
