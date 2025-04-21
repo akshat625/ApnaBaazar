@@ -119,5 +119,10 @@ public class SellerController {
         return ResponseEntity.ok(messageSource.getMessage("variation.added.success", null, locale));
     }
 
+    @GetMapping("/product/variations/{variationId}")
+    public ResponseEntity<ProductVariationDTO> getProductVariation(@AuthenticationPrincipal UserPrincipal userPrincipal,@PathVariable String variationId) {
+        return ResponseEntity.ok(sellerService.getProductVariation(userPrincipal,variationId));
+    }
+
 
 }

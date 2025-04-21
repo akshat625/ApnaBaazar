@@ -31,6 +31,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.metadata.InvalidMetadataException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -339,7 +340,7 @@ public class SellerService {
 
     }
 
-    private void validateMetadata(Map<String, Object> metadata, Category category, Locale locale,Product product) {
+    private void validateMetadata(Map<String, Object> metadata, Category category, Locale locale, Product product) {
         if (metadata == null || metadata.isEmpty()) {
             throw new InvalidMetadataException(messageSource.getMessage("metadata.min.one", null, locale));
         }
@@ -381,5 +382,41 @@ public class SellerService {
             if (!existingMetadata.get(fieldName).contains(value))
                 throw new InvalidMetadataException(messageSource.getMessage("metadata.value.invalid", new Object[]{value, fieldName}, locale));
         }
+    }
+
+    public ProductVariationDTO getProductVariation(UserPrincipal userPrincipal, String variationId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        ProductVariation productVariation = productVariationRepository.findById(variationId)
+                .orElseThrow(() -> new ProductVariationNotFoundException(messageSource.getMessage("product.variation.not.found", new Object[]{variationId}, locale)));
+
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+
+        Product product = productVariation.getProduct();
+
+        if (product.getSeller() != seller)
+            throw new InvalidSellerException(messageSource.getMessage("seller.not.associated.with.product", new Object[]{product.getName()}, locale));
+
+        if (product.isDeleted())
+            throw new ProductNotFoundException(messageSource.getMessage("product.deleted.product", new Object[]{product.getId()}, locale));
+
+        Category category = product.getCategory();
+
+
+
+        ProductVariationDTO dto = new ProductVariationDTO();
+        dto.setProductId(product.getId());
+        dto.setPrice(productVariation.getPrice());
+        dto.setMetadata(productVariation.getMetadata());
+        dto.setQuantity(productVariation.getQuantityAvailable());
+        dto.setProductName(product.getName());
+        dto.setBrand(product.getBrand());
+        dto.setDescription(product.getDescription());
+        return dto;
+
+
     }
 }

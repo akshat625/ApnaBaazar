@@ -1,5 +1,8 @@
 package com.apnabaazar.apnabaazar.model.dto.product_dto;
 
+import com.apnabaazar.apnabaazar.model.products.Product;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,5 +26,11 @@ public class ProductVariationDTO {
     @NotNull(message = "{price.notnull}")
     @DecimalMin(value = "0.0", inclusive = true, message = "{price.min.zero}")
     private Double price;
+
+    private String productName;
+    private String brand;
+    private String description;
+
+
 }
 
