@@ -4,6 +4,8 @@ import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.users.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -21,6 +23,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE products SET is_deleted = true WHERE id = ?")
+@Where(clause = "is_deleted = false")
 public class Product {
 
     @Id

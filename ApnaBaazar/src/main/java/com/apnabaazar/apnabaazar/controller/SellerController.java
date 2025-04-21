@@ -124,5 +124,11 @@ public class SellerController {
         return ResponseEntity.ok(sellerService.getProductVariation(userPrincipal,variationId));
     }
 
+    @DeleteMapping("/product/{productId}")
+    public ResponseEntity<GenericResponseDTO> deleteProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId) {
+        sellerService.deleteProduct(userPrincipal,productId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.deleted.success", null, locale)));
+    }
+
 
 }

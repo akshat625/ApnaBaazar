@@ -419,4 +419,21 @@ public class SellerService {
 
 
     }
+
+    public void deleteProduct(UserPrincipal userPrincipal, String productId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+        if (product.getSeller() != seller)
+            throw new InvalidSellerException(messageSource.getMessage("seller.not.associated.with.product", new Object[]{product.getName()}, locale));
+
+        product.setDeleted(true);
+        productRepository.save(product);
+
+    }
 }
