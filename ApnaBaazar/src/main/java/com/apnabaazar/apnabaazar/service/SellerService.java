@@ -12,9 +12,11 @@ import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.products.Product;
+import com.apnabaazar.apnabaazar.model.products.ProductVariation;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Role;
 import com.apnabaazar.apnabaazar.model.users.Seller;
@@ -28,12 +30,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jmx.export.metadata.InvalidMetadataException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,6 +54,7 @@ public class SellerService {
     private final AddressRepository addressRepository;
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final ProductVariationRepository productVariationRepository;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final S3Service s3Service;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -184,7 +190,7 @@ public class SellerService {
                                     dto.setValues(value.getValues());
                                     return dto;
                                 })
-                                .collect(Collectors.toList())
+                                .toList()
                 );
             }
             current = current.getParentCategory();
@@ -281,5 +287,99 @@ public class SellerService {
                 .returnable(product.isReturnable())
                 .active(product.isActive())
                 .build();
+    }
+
+    public void addProductVariations(ProductVariationDTO dto, MultipartFile primaryImage, List<MultipartFile> secondaryImages) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Product product = productRepository.findById(dto.getProductId())
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{dto.getProductId()}, locale)));
+        if (product.isDeleted()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.deleted", null, locale));
+        }
+        if (!product.isActive()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.inactive", null, locale));
+        }
+        Category category = product.getCategory();
+
+        boolean alreadyExists = product.getVariations().stream()
+                .anyMatch(v -> Objects.equals(v.getMetadata(), dto.getMetadata()));
+        if (alreadyExists)
+            throw new DuplicateResourceException(messageSource.getMessage("product.variation.duplicate", null, locale));
+
+        validateMetadata(dto.getMetadata(), category, locale, product);
+
+        ProductVariation variation = new ProductVariation();
+        variation.setProduct(product);
+        variation.setMetadata(dto.getMetadata());
+        variation.setQuantityAvailable(dto.getQuantity());
+        variation.setPrice(dto.getPrice());
+        variation.setActive(true);
+
+        // Save first to get an ID
+        ProductVariation savedVariation = productVariationRepository.save(variation);
+
+        try {
+            String primaryImageKey = s3Service.uploadProductVariationImage(product.getId(), savedVariation.getProductVariationId(), primaryImage, true);
+            savedVariation.setPrimaryImageName(primaryImageKey);
+
+            if (secondaryImages != null && !secondaryImages.isEmpty()) {
+                for (MultipartFile secondaryImage : secondaryImages) {
+                    s3Service.uploadProductVariationImage(product.getId(), savedVariation.getProductVariationId(), secondaryImage, false);
+                }
+            }
+
+            productVariationRepository.save(savedVariation);
+
+        } catch (IOException e) {
+            log.error("Error uploading images: {}", e.getMessage());
+            productVariationRepository.delete(savedVariation);
+            throw new RuntimeException("Failed to upload images: " + e.getMessage());
+        }
+
+    }
+
+    private void validateMetadata(Map<String, Object> metadata, Category category, Locale locale,Product product) {
+        if (metadata == null || metadata.isEmpty()) {
+            throw new InvalidMetadataException(messageSource.getMessage("metadata.min.one", null, locale));
+        }
+
+        Set<String> newMetadataFields = metadata.keySet();
+
+        if (!product.getVariations().isEmpty()) {
+            Optional<ProductVariation> existingVariation = product.getVariations().stream()
+                    .filter(v -> v.getMetadata() != null && !v.getMetadata().isEmpty())
+                    .findFirst();
+
+            if (existingVariation.isPresent()) {
+                Set<String> existingFields = existingVariation.get().getMetadata().keySet();
+
+                if (!existingFields.equals(newMetadataFields)) {
+                    throw new InvalidMetadataException(messageSource.getMessage("metadata.structure.mismatch", null, locale));
+                }
+            }
+        }
+
+        Map<String, Set<String>> existingMetadata = new HashMap<>();
+        Category current = category;
+
+        while (current != null) {
+            List<CategoryMetadataFieldValues> metadataValues = categoryMetadataFieldValuesRepository.findByCategory(current);
+            for (CategoryMetadataFieldValues value : metadataValues) {
+                String fieldName = value.getCategoryMetadataField().getName();
+                Set<String> allowedValues = Arrays.stream(value.getValues().split(",")).map(String::trim).collect(Collectors.toSet());
+                existingMetadata.put(fieldName, allowedValues);
+            }
+            current = current.getParentCategory();
+        }
+        for (Map.Entry<String, Object> entry : metadata.entrySet()) {
+            String fieldName = entry.getKey();
+            String value = entry.getValue().toString();
+
+            if (!existingMetadata.containsKey(fieldName))
+                throw new InvalidMetadataException(messageSource.getMessage("metadata.field.invalid", new Object[]{fieldName}, locale));
+            if (!existingMetadata.get(fieldName).contains(value))
+                throw new InvalidMetadataException(messageSource.getMessage("metadata.value.invalid", new Object[]{value, fieldName}, locale));
+        }
     }
 }

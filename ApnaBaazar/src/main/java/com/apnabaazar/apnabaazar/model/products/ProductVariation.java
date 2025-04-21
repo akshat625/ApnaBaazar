@@ -9,6 +9,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -26,10 +27,10 @@ public class ProductVariation {
 
     private Integer quantityAvailable;
 
-    private Long price;
+    private Double price;
 
-//    @JdbcTypeCode(SqlTypes.JSON)
-    private String metadata; // JSON string containing variation details
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String,Object> metadata;
 
     private String primaryImageName;
 
@@ -40,3 +41,4 @@ public class ProductVariation {
 //for cart
     private boolean isActive = true;
 }
+

@@ -7,6 +7,7 @@ import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
@@ -25,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -105,6 +107,16 @@ public class SellerController {
     @GetMapping("/product/{productId}")
     public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId)  {
         return ResponseEntity.ok(sellerService.getProduct(userPrincipal,productId));
+    }
+
+    @PostMapping("/product/variations")
+    public ResponseEntity<String> addProductVariation(
+            @RequestPart("productData") @Valid ProductVariationDTO dto,
+            @RequestPart("primaryImage") MultipartFile primaryImage,
+            @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
+    ){
+        sellerService.addProductVariations(dto,primaryImage,secondaryImages);
+        return ResponseEntity.ok(messageSource.getMessage("variation.added.success", null, locale));
     }
 
 

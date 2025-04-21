@@ -110,4 +110,28 @@ public class S3Service {
         }
         return extension;
     }
+
+    public String uploadProductVariationImage(String productId, String variationId, MultipartFile image, boolean isPrimary) throws IOException {
+        String extension = getExtension(image.getOriginalFilename());
+        String key = "products/" + productId + "/variations/";
+
+        if (isPrimary) {
+            key += variationId + extension;
+        } else {
+            // Add timestamp for unique secondary image names
+            key += variationId + "_" + System.currentTimeMillis() + extension;
+        }
+
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .acl("public-read")
+                .contentType(image.getContentType())
+                .build();
+
+        s3Client.putObject(request, RequestBody.fromBytes(image.getBytes()));
+
+        return key;
+    }
+
 }

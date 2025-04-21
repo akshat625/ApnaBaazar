@@ -4,6 +4,7 @@ import com.apnabaazar.apnabaazar.model.error.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jmx.export.metadata.InvalidMetadataException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -185,6 +186,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidProductStateException.class)
     public ResponseEntity<ErrorResponse> handleInvalidProductStateException(InvalidProductStateException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidMetadataException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidMetadataException(InvalidMetadataException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
