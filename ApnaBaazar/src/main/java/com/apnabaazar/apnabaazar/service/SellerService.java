@@ -12,6 +12,7 @@ import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
@@ -499,5 +500,46 @@ public class SellerService {
         }
 
         productVariationRepository.save(productVariation);
+    }
+
+    public void updateProduct(UserPrincipal userPrincipal, ProductUpdateDTO dto, String productId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+        if (product.getSeller() != seller) {
+            throw new InvalidSellerException(messageSource.getMessage("seller.not.associated.with.product", new Object[]{product.getName()}, locale));
+        }
+
+        if (dto.getName() != null && !dto.getName().isBlank() && !dto.getName().equals(product.getName())) {
+            boolean isDuplicate = productRepository.findAll().stream()
+                    .filter(p -> !p.getId().equals(productId))
+                    .filter(p -> p.getSeller().equals(seller))
+                    .filter(p -> p.getCategory().equals(product.getCategory()))
+                    .filter(p -> p.getBrand().equals(product.getBrand()))
+                    .anyMatch(p -> p.getName().equals(dto.getName()));
+
+            if (isDuplicate) {
+                throw new DuplicateProductException(messageSource.getMessage(
+                        "product.duplicate.name", new Object[]{dto.getName(), product.getBrand()}, locale));
+            }
+            product.setName(dto.getName());
+        }
+
+        if (dto.getDescription() != null)
+            product.setDescription(dto.getDescription());
+
+        if (dto.getCancellable() != product.isCancellable())
+            product.setCancellable(dto.getCancellable());
+
+        if (dto.getReturnable() != product.isReturnable())
+            product.setReturnable(dto.getReturnable());
+
+        productRepository.save(product);
     }
 }

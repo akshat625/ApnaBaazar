@@ -7,6 +7,7 @@ import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
@@ -105,11 +106,11 @@ public class SellerController {
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.added.success", null, locale)));
     }
 
-//    @PutMapping("/product/{productId}")
-//    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductDTO productDTO,String productId) throws MessagingException {
-//        sellerService.updateProduct(userPrincipal, productDTO, productId);
-//        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.updated.success", null, locale)));
-//    }
+    @PutMapping("/product/{productId}")
+    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductUpdateDTO productDTO, String productId)  {
+        sellerService.updateProduct(userPrincipal, productDTO, productId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.updated.success", null, locale)));
+    }
 
     @GetMapping("/product/{productId}")
     public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId)  {
@@ -149,6 +150,7 @@ public class SellerController {
         return ResponseEntity.ok(new GenericResponseDTO(true,
                 messageSource.getMessage("product.variation.updated.success", null, locale)));
     }
+
 
 
 }
