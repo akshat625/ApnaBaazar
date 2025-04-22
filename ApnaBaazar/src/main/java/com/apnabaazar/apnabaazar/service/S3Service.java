@@ -134,4 +134,28 @@ public class S3Service {
         return key;
     }
 
+    public void deleteObject(String key) {
+        if (key == null || key.isEmpty()) {
+            log.warn("Cannot delete object with null or empty key");
+            return;
+        }
+
+        log.info("Deleting object with key: {}", key);
+        try {
+            s3Client.deleteObject(builder -> builder.bucket(bucket).key(key));
+            log.info("Successfully deleted object: {}", key);
+        } catch (Exception e) {
+            log.error("Error deleting object {}: {}", key, e.getMessage());
+            throw new RuntimeException("Failed to delete object: " + e.getMessage());
+        }
+    }
+
+
+    public String getObjectUrl(String key) throws IOException {
+        if (!doesObjectExist(key)) {
+            throw new IOException("Object not found: " + key);
+        }
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
+    }
+
 }

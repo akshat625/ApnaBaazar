@@ -13,6 +13,7 @@ import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldVal
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.products.Product;
@@ -435,5 +436,68 @@ public class SellerService {
         product.setDeleted(true);
         productRepository.save(product);
 
+    }
+
+    public void updateProductVariation(UserPrincipal userPrincipal, String variationId, ProductVariationUpdateDTO dto, MultipartFile primaryImage, List<MultipartFile> secondaryImages) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        ProductVariation productVariation = productVariationRepository.findById(variationId)
+                .orElseThrow(() -> new ProductVariationNotFoundException(messageSource.getMessage("product.variation.not.found", new Object[]{variationId}, locale)));
+
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+        Product product = productVariation.getProduct();
+
+        if (product.getSeller() != seller)
+            throw new InvalidSellerException(messageSource.getMessage("seller.not.associated.with.product", new Object[]{product.getName()}, locale));
+
+        if (product.isDeleted())
+            throw new ProductNotFoundException(messageSource.getMessage("product.deleted", null, locale));
+
+        if (!product.isActive())
+            throw new InvalidProductStateException(messageSource.getMessage("product.inactive", null, locale));
+
+        if (dto != null) {
+            if (dto.getQuantity() != null)
+                productVariation.setQuantityAvailable(dto.getQuantity());
+
+            if (dto.getPrice() != null)
+                productVariation.setPrice(dto.getPrice());
+
+            if (dto.getMetadata() != null && !dto.getMetadata().isEmpty()) {
+                validateMetadata(dto.getMetadata(), product.getCategory(), locale, product);
+                productVariation.setMetadata(dto.getMetadata());
+            }
+        }
+
+        try {
+            if (primaryImage != null && !primaryImage.isEmpty()) {
+                // Delete old primary image if it exists
+                if (productVariation.getPrimaryImageName() != null) {
+                    s3Service.deleteObject(productVariation.getPrimaryImageName());
+                }
+
+                String primaryImageKey = s3Service.uploadProductVariationImage(
+                        product.getId(), variationId, primaryImage, true);
+                productVariation.setPrimaryImageName(primaryImageKey);
+            }
+
+            if (secondaryImages != null && !secondaryImages.isEmpty()) {
+                // For secondary images, we'd need to track and manage them
+                // This is a simplified approach - you may want to enhance it to track each secondary image
+                for (MultipartFile secondaryImage : secondaryImages) {
+                    if (secondaryImage != null && !secondaryImage.isEmpty()) {
+                        s3Service.uploadProductVariationImage(product.getId(), variationId, secondaryImage, false);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            log.error("Error updating images: {}", e.getMessage());
+            throw new RuntimeException("Failed to update images: " + e.getMessage());
+        }
+
+        productVariationRepository.save(productVariation);
     }
 }

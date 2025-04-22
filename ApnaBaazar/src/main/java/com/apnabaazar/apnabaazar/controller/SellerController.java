@@ -8,6 +8,7 @@ import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
@@ -104,6 +105,12 @@ public class SellerController {
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.added.success", null, locale)));
     }
 
+//    @PutMapping("/product/{productId}")
+//    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductDTO productDTO,String productId) throws MessagingException {
+//        sellerService.updateProduct(userPrincipal, productDTO, productId);
+//        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.updated.success", null, locale)));
+//    }
+
     @GetMapping("/product/{productId}")
     public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId)  {
         return ResponseEntity.ok(sellerService.getProduct(userPrincipal,productId));
@@ -116,7 +123,7 @@ public class SellerController {
             @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
     ){
         sellerService.addProductVariations(dto,primaryImage,secondaryImages);
-        return ResponseEntity.ok(messageSource.getMessage("variation.added.success", null, locale));
+        return ResponseEntity.ok(messageSource.getMessage("product.variation.added.success", null, locale));
     }
 
     @GetMapping("/product/variations/{variationId}")
@@ -128,6 +135,19 @@ public class SellerController {
     public ResponseEntity<GenericResponseDTO> deleteProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId) {
         sellerService.deleteProduct(userPrincipal,productId);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.deleted.success", null, locale)));
+    }
+
+    @PutMapping("/product/variations/{variationId}")
+    public ResponseEntity<GenericResponseDTO> updateProductVariation(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String variationId,
+            @RequestPart(value = "productData", required = false) ProductVariationUpdateDTO dto,
+            @RequestPart(value = "primaryImage", required = false) MultipartFile primaryImage,
+            @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
+    ) {
+        sellerService.updateProductVariation(userPrincipal, variationId, dto, primaryImage, secondaryImages);
+        return ResponseEntity.ok(new GenericResponseDTO(true,
+                messageSource.getMessage("product.variation.updated.success", null, locale)));
     }
 
 

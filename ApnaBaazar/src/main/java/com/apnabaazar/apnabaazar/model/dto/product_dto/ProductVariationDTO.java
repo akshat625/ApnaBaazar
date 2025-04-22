@@ -1,7 +1,5 @@
 package com.apnabaazar.apnabaazar.model.dto.product_dto;
 
-import com.apnabaazar.apnabaazar.model.products.Product;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -37,7 +35,6 @@ public class ProductVariationDTO {
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String description;
-
 
 
 }

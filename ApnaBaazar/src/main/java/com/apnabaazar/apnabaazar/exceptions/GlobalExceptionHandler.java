@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
@@ -196,6 +197,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ProductVariationNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleProductVariationNotFoundException(ProductVariationNotFoundException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
