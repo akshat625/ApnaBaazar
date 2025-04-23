@@ -1,7 +1,9 @@
 package com.apnabaazar.apnabaazar.controller;
+import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.service.AdminService;
@@ -10,11 +12,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -148,6 +153,18 @@ public class AdminController {
     @GetMapping("/product/{productId}")
     public ResponseEntity<ProductResponseDTO> getProduct(@PathVariable String productId) {
         return ResponseEntity.ok(adminService.getProduct(productId));
+    }
+
+    @GetMapping("/products/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        return ResponseEntity.ok(adminService.searchProducts(filters, page, size, sort, direction, userPrincipal));
     }
 
 

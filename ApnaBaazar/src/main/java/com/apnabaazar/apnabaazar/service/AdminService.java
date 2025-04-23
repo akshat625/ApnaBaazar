@@ -1,5 +1,6 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.mapper.Mapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
@@ -17,7 +18,9 @@ import com.apnabaazar.apnabaazar.model.products.Product;
 import com.apnabaazar.apnabaazar.model.products.ProductVariation;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
+import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.*;
+import com.apnabaazar.apnabaazar.specification.ProductSpecification;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +31,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.parameters.P;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -53,6 +58,7 @@ public class AdminService {
     private final S3Service s3Service;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
+    private final UserRepository userRepository;
 
 
     public List<CustomerResponseDTO> getCustomers(int pageSize, int pageOffset, String sort) {
@@ -508,6 +514,34 @@ public class AdminService {
                 .build();
     }
 
+
+    public List<ProductDTO> searchProducts(Map<String, String> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, sortDirection, sort);
+
+        Specification<Product> spec = ProductSpecification.withFilters(filters);
+        Page<Product> productsPage = productRepository.findAll(spec, pageable);
+
+        return productsPage.getContent().stream().map(product -> {
+            CategoryDTO categoryDTO = CategoryDTO.builder()
+                    .categoryId(product.getCategory().getCategoryId())
+                    .categoryName(product.getCategory().getName())
+                    .build();
+
+            return ProductDTO.builder()
+                    .name(product.getName())
+                    .brand(product.getBrand())
+                    .description(product.getDescription())
+                    .cancellable(product.isCancellable())
+                    .returnable(product.isReturnable())
+                    .active(product.isActive())
+                    .category(categoryDTO)
+                    .build();
+        }).toList();
+    }
 }
 
 
