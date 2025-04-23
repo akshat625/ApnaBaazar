@@ -6,10 +6,7 @@ import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductUpdateDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
@@ -26,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -107,14 +105,14 @@ public class SellerController {
     }
 
     @PutMapping("/product/{productId}")
-    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductUpdateDTO productDTO,@PathVariable String productId)  {
+    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductUpdateDTO productDTO, @PathVariable String productId) {
         sellerService.updateProduct(userPrincipal, productDTO, productId);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.updated.success", null, locale)));
     }
 
     @GetMapping("/product/{productId}")
-    public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId)  {
-        return ResponseEntity.ok(sellerService.getProduct(userPrincipal,productId));
+    public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId) {
+        return ResponseEntity.ok(sellerService.getProduct(userPrincipal, productId));
     }
 
     @PostMapping("/product/variations")
@@ -122,19 +120,19 @@ public class SellerController {
             @RequestPart("productData") @Valid ProductVariationDTO dto,
             @RequestPart("primaryImage") MultipartFile primaryImage,
             @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
-    ){
-        sellerService.addProductVariations(dto,primaryImage,secondaryImages);
+    ) {
+        sellerService.addProductVariations(dto, primaryImage, secondaryImages);
         return ResponseEntity.ok(messageSource.getMessage("product.variation.added.success", null, locale));
     }
 
     @GetMapping("/product/variations/{variationId}")
-    public ResponseEntity<ProductVariationDTO> getProductVariation(@AuthenticationPrincipal UserPrincipal userPrincipal,@PathVariable String variationId) {
-        return ResponseEntity.ok(sellerService.getProductVariation(userPrincipal,variationId));
+    public ResponseEntity<ProductVariationDTO> getProductVariation(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String variationId) {
+        return ResponseEntity.ok(sellerService.getProductVariation(userPrincipal, variationId));
     }
 
     @DeleteMapping("/product/{productId}")
     public ResponseEntity<GenericResponseDTO> deleteProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId) {
-        sellerService.deleteProduct(userPrincipal,productId);
+        sellerService.deleteProduct(userPrincipal, productId);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.deleted.success", null, locale)));
     }
 
@@ -165,7 +163,28 @@ public class SellerController {
     }
 
 
+    @GetMapping("/product/variations/all/{productId}")
+    public ResponseEntity<List<ProductVariationResponseDTO>> getAllProductVariations(
+            @RequestParam(required = false) Double priceMin,
+            @RequestParam(required = false) Double priceMax,
+            @RequestParam(required = false) Double price,
+            @RequestParam(required = false) Integer quantity,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "price") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String productId) {
 
+        Map<String, Object> filters = new HashMap<>();
+        if (priceMin != null) filters.put("priceMin", priceMin);
+        if (priceMax != null) filters.put("priceMax", priceMax);
+        if (price != null) filters.put("price", price);
+        if (quantity != null) filters.put("quantity", quantity);
+        if (active != null) filters.put("active", active);
+        return ResponseEntity.ok(sellerService.getAllProductVariations(filters, page, size, sort, direction, userPrincipal,productId));
+    }
 
 
 }

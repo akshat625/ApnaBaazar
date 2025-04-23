@@ -11,10 +11,7 @@ import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductUpdateDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
-import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.products.Product;
@@ -25,6 +22,7 @@ import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.*;
 import com.apnabaazar.apnabaazar.specification.ProductSpecification;
+import com.apnabaazar.apnabaazar.specification.ProductVariationSpecification;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -566,7 +564,6 @@ public class SellerService {
 
         Specification<Product> spec = ProductSpecification.withFilters(filters,seller.getId());
         Page<Product> productsPage = productRepository.findAll(spec, pageable);
-
         return productsPage.getContent().stream().map(product -> {
             CategoryDTO categoryDTO = CategoryDTO.builder()
                     .categoryId(product.getCategory().getCategoryId())
@@ -585,5 +582,48 @@ public class SellerService {
                     .category(categoryDTO)
                     .build();
         }).toList();
+    }
+
+    public List<ProductVariationResponseDTO> getAllProductVariations(Map<String, Object> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal, String productId) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, sortDirection, sort);
+        Specification<ProductVariation> spec = ProductVariationSpecification.withFilters(filters,seller.getId());
+        Page<ProductVariation> productVariationPage = productVariationRepository.findAll(spec, pageable);
+
+        return productVariationPage.getContent().stream()
+                .filter(variation -> variation.getProduct().getId().equals(productId))
+                .map(variation -> {
+                    String imageUrl = null;
+                    try {
+                        imageUrl = s3Service.getObjectUrl("products/" + productId + "/variations/" + variation.getProductVariationId() + s3Service.getExtension(variation.getPrimaryImageName()));
+                    } catch (IOException e) {
+                        imageUrl = "https://your-cdn.com/default-image.jpg"; // fallback image
+                    }
+
+                    return ProductVariationResponseDTO.builder()
+                            .active(variation.isActive())
+                            .metadata(variation.getMetadata())
+                            .quantity(variation.getQuantityAvailable())
+                            .price(variation.getPrice())
+                            .primaryImageUrl(imageUrl)
+                            .build();
+                }).toList();
+
+
+
+
+
+
+
+
     }
 }
