@@ -9,14 +9,19 @@ import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.model.products.Product;
+import com.apnabaazar.apnabaazar.model.products.ProductVariation;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.*;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
@@ -24,15 +29,19 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
 @Transactional
+@Slf4j
 public class AdminService {
 
     private final CustomerRepository customerRepository;
@@ -41,6 +50,7 @@ public class AdminService {
     private final CategoryMetadataFieldRepository categoryMetadataFieldRepository;
     private final CategoryRepository categoryRepository;
     private final EmailService emailService;
+    private final S3Service s3Service;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
 
@@ -218,13 +228,11 @@ public class AdminService {
         //adding immediate children categories
         if (!category.getSubCategories().isEmpty()) {
             List<CategoryDTO> childrenDTOs = category.getSubCategories().stream()
-                    .map(child -> {
-                        CategoryDTO childDTO = new CategoryDTO();
-                        childDTO.setCategoryName(child.getName());
-                        childDTO.setCategoryId(child.getCategoryId());
-                        childDTO.setParentId(category.getCategoryId());
-                        return childDTO;
-                    })
+                    .map(child -> CategoryDTO.builder()
+                            .categoryName(child.getName())
+                            .categoryId(child.getCategoryId())
+                            .parentId(category.getCategoryId())
+                            .build())
                     .toList();
             responseDTO.setChildren(childrenDTOs);
         }
@@ -259,11 +267,12 @@ public class AdminService {
         Category current = category.getParentCategory();
 
         while (current != null) {
-            CategoryDTO parentDTO = new CategoryDTO();
-            parentDTO.setCategoryName(current.getName());
-            parentDTO.setParentId(current.getParentCategory() != null ?
-                    current.getParentCategory().getCategoryId() : null);
-            parentDTO.setCategoryId(current.getCategoryId());
+            CategoryDTO parentDTO = CategoryDTO.builder()
+                    .categoryName(current.getName())
+                    .parentId(current.getParentCategory() != null ?
+                            current.getParentCategory().getCategoryId() : null)
+                    .categoryId(current.getCategoryId())
+                    .build();
             hierarchy.add(0, parentDTO); // Add at beginning to maintain root->leaf order
             current = current.getParentCategory();
         }
@@ -442,6 +451,63 @@ public class AdminService {
         String sellerEmail = product.getSeller().getEmail();
         emailService.sendProductActivationEmail(sellerEmail, "Product Activated", product);
     }
+
+    public ProductResponseDTO getProduct(String productId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        CategoryDTO categoryDTO = CategoryDTO.builder()
+                .categoryId(product.getCategory().getCategoryId())
+                .categoryName(product.getCategory().getName())
+                .build();
+
+        ProductDTO productDTO = ProductDTO.builder()
+                .name(product.getName())
+                .brand(product.getBrand())
+                .description(product.getDescription())
+                .cancellable(product.isCancellable())
+                .returnable(product.isReturnable())
+                .active(product.isActive())
+                .category(categoryDTO)
+                .build();
+
+        //map product variations
+        List<ProductVariationResponseDTO> variationDTOs = product.getVariations().stream()
+                .map(variation -> {
+                    String primaryImageUrl = null;
+
+                    //get primary image URL
+                    if (variation.getPrimaryImageName() != null && !variation.getPrimaryImageName().isEmpty()) {
+                        try {
+                            primaryImageUrl = s3Service.getObjectUrl(variation.getPrimaryImageName());
+                        } catch (IOException e) {
+                            log.error("Error getting primary image URL for variation {}: {}",
+                                    variation.getProductVariationId(), e.getMessage());
+                        }
+                    }
+
+                    //get secondary image URLs
+                    List<String> secondaryImageUrls = s3Service.getSecondaryImageUrls(
+                            product.getId(), variation.getProductVariationId());
+
+                    return ProductVariationResponseDTO.builder()
+                            .metadata(variation.getMetadata())
+                            .quantity(variation.getQuantityAvailable())
+                            .price(variation.getPrice())
+                            .primaryImageUrl(primaryImageUrl)
+                            .secondaryImageUrl(secondaryImageUrls)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return ProductResponseDTO.builder()
+                .product(productDTO)
+                .productVariation(variationDTOs)
+                .build();
+    }
+
 }
 
 

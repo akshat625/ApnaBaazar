@@ -9,9 +9,13 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -156,6 +160,28 @@ public class S3Service {
             throw new IOException("Object not found: " + key);
         }
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
+    }
+
+    public List<String> getSecondaryImageUrls(String productId, String variationId) {
+        List<String> urls = new ArrayList<>();
+        String prefix = "products/" + productId + "/variations/" + variationId + "_";
+
+        try {
+            ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                    .bucket(bucket)
+                    .prefix(prefix)
+                    .build();
+
+            ListObjectsV2Response response = s3Client.listObjectsV2(listRequest);
+
+            response.contents().forEach(object -> {
+                String url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, object.key());
+                urls.add(url);
+            });
+        } catch (Exception e) {
+            log.error("Error listing secondary images for product variation {}: {}", variationId, e.getMessage());
+        }
+        return urls;
     }
 
 }

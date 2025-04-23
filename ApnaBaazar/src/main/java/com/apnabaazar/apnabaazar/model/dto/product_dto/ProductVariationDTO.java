@@ -36,6 +36,5 @@ public class ProductVariationDTO {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String description;
 
-
 }
 

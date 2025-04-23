@@ -208,15 +208,18 @@ public class SellerService {
         Category current = category.getParentCategory();
 
         while (current != null) {
-            CategoryDTO parentDTO = new CategoryDTO();
-            parentDTO.setCategoryName(current.getName());
-            parentDTO.setCategoryId(current.getCategoryId());
-            parentDTO.setParentId(current.getParentCategory() != null ?
-                    current.getParentCategory().getCategoryId() : null);
+            CategoryDTO parentDTO = CategoryDTO.builder()
+                    .categoryName(current.getName())
+                    .parentId(current.getParentCategory() != null ?
+                            current.getParentCategory().getCategoryId() : null)
+                    .categoryId(current.getCategoryId())
+                    .build();
+
             hierarchy.add(0, parentDTO); // Add at beginning to maintain root->leaf order
             current = current.getParentCategory();
         }
         return hierarchy;
+
     }
 
     public void addProduct(UserPrincipal userPrincipal, @Valid ProductDTO productDTO) throws MessagingException {
@@ -277,9 +280,11 @@ public class SellerService {
                 .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{product.getCategory().getCategoryId()}, locale)));
 
 
-        CategoryDTO categoryDTO = new CategoryDTO();
-        categoryDTO.setCategoryId(category.getCategoryId());
-        categoryDTO.setCategoryName(category.getName());
+        CategoryDTO categoryDTO = CategoryDTO.builder()
+                .categoryId(category.getCategoryId())
+                .categoryName(category.getName())
+                .build();
+
 
         return ProductDTO.builder()
                 .category(categoryDTO)

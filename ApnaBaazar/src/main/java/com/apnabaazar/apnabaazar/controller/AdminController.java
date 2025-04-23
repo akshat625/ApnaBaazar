@@ -2,6 +2,7 @@ package com.apnabaazar.apnabaazar.controller;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.service.AdminService;
 import jakarta.mail.MessagingException;
@@ -142,6 +143,11 @@ public class AdminController {
     public ResponseEntity<GenericResponseDTO> activateProduct(@PathVariable String productId) throws MessagingException {
         adminService.activateProduct(productId);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.activated.success", null, locale)));
+    }
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<ProductResponseDTO> getProduct(@PathVariable String productId) {
+        return ResponseEntity.ok(adminService.getProduct(productId));
     }
 
 

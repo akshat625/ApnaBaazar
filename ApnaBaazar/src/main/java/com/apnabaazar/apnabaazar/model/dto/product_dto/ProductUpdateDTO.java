@@ -1,6 +1,5 @@
 package com.apnabaazar.apnabaazar.model.dto.product_dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +8,6 @@ import lombok.Setter;
 @Setter
 public class ProductUpdateDTO {
 
-    private String categoryId;
 
     @Size(max = 255, message = "{product.name.size}")
     private String name;

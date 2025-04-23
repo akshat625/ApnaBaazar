@@ -8,6 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 public class CategoryDTO {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

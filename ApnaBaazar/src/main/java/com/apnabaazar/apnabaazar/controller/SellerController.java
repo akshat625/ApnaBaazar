@@ -107,7 +107,7 @@ public class SellerController {
     }
 
     @PutMapping("/product/{productId}")
-    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductUpdateDTO productDTO, String productId)  {
+    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductUpdateDTO productDTO,@PathVariable String productId)  {
         sellerService.updateProduct(userPrincipal, productDTO, productId);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.updated.success", null, locale)));
     }
@@ -150,6 +150,8 @@ public class SellerController {
         return ResponseEntity.ok(new GenericResponseDTO(true,
                 messageSource.getMessage("product.variation.updated.success", null, locale)));
     }
+
+
 
 
 
