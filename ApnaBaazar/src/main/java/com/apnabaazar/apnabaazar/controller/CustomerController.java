@@ -7,6 +7,7 @@ import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
@@ -105,5 +106,10 @@ public class CustomerController {
     @GetMapping("/categories")
     public ResponseEntity<List<CustomerCategoryResponseDTO>> getAllCategories(@RequestParam(required = false) String categoryId) {
         return ResponseEntity.ok(customerService.getAllCategories(categoryId));
+    }
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<ProductResponseDTO> getProduct(@PathVariable String productId) {
+        return ResponseEntity.ok(customerService.getProduct(productId));
     }
 }

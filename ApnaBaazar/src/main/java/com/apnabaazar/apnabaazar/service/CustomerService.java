@@ -1,22 +1,26 @@
 package com.apnabaazar.apnabaazar.service;
 
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
-import com.apnabaazar.apnabaazar.exceptions.CategoryNotFoundException;
-import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
-import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
+import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.mapper.CustomerMapper;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
+import com.apnabaazar.apnabaazar.model.products.Product;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
+import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +36,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
+import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -47,6 +53,7 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
     private final PasswordEncoder passwordEncoder;
@@ -235,6 +242,74 @@ public class CustomerService {
                     return dto;
                 })
                 .toList();
+    }
+
+    public ProductResponseDTO getProduct(String productId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
+
+        if (product.isDeleted()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.deleted", null, locale));
+        }
+        if (!product.isActive()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.inactive", null, locale));
+        }
+        if (product.getVariations()==null || product.getVariations().isEmpty()) {
+            throw new InvalidProductStateException(messageSource.getMessage("product.variation.empty", new Object[]{product.getName()}, locale));
+        }
+        User seller = product.getSeller();
+
+        CategoryDTO categoryDTO = CategoryDTO.builder()
+                .categoryId(product.getCategory().getCategoryId())
+                .categoryName(product.getCategory().getName())
+                .build();
+
+        ProductDTO productDTO = ProductDTO.builder()
+                .name(product.getName())
+                .brand(product.getBrand())
+                .description(product.getDescription())
+                .cancellable(product.isCancellable())
+                .returnable(product.isReturnable())
+                .active(product.isActive())
+                .category(categoryDTO)
+                .build();
+
+        //map product variations
+        List<ProductVariationResponseDTO> variationDTOs = product.getVariations().stream()
+                .map(variation -> {
+                    String primaryImageUrl = null;
+
+                    //get primary image URL
+                    if (variation.getPrimaryImageName() != null && !variation.getPrimaryImageName().isEmpty()) {
+                        try {
+                            primaryImageUrl = s3Service.getObjectUrl(variation.getPrimaryImageName());
+                        } catch (IOException e) {
+                            log.error("Error getting primary image URL for variation {}: {}",
+                                    variation.getProductVariationId(), e.getMessage());
+                        }
+                    }
+
+                    //get secondary image URLs
+                    List<String> secondaryImageUrls = s3Service.getSecondaryImageUrls(
+                            product.getId(), variation.getProductVariationId());
+
+                    return ProductVariationResponseDTO.builder()
+                            .metadata(variation.getMetadata())
+                            .quantity(variation.getQuantityAvailable())
+                            .price(variation.getPrice())
+                            .primaryImageUrl(primaryImageUrl)
+                            .secondaryImageUrl(secondaryImageUrls)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return ProductResponseDTO.builder()
+                .sellerId(seller.getId())
+                .product(productDTO)
+                .productVariation(variationDTOs)
+                .build();
     }
 
 }

@@ -23,7 +23,6 @@ public class ProductSpecification {
 
             if (seller != null)
                 predicates.add(cb.equal(root.get("seller").get("id"), seller));
-
             if (category != null)
                 predicates.add(cb.equal(root.get("category").get("categoryId"), category));
             if (brand != null)
