@@ -24,6 +24,7 @@ import com.apnabaazar.apnabaazar.model.users.Role;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.*;
+import com.apnabaazar.apnabaazar.specification.ProductSpecification;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.metadata.InvalidMetadataException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -546,5 +552,38 @@ public class SellerService {
             product.setReturnable(dto.getReturnable());
 
         productRepository.save(product);
+    }
+
+    public List<ProductDTO> searchProducts(Map<String, String> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String email = userPrincipal.getUsername();
+        Seller seller = sellerRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{email}, locale)));
+
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
+                Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, sortDirection, sort);
+
+        Specification<Product> spec = ProductSpecification.withFilters(filters,seller.getId());
+        Page<Product> productsPage = productRepository.findAll(spec, pageable);
+
+        return productsPage.getContent().stream().map(product -> {
+            CategoryDTO categoryDTO = CategoryDTO.builder()
+                    .categoryId(product.getCategory().getCategoryId())
+                    .categoryName(product.getCategory().getName())
+                    .build();
+
+            return ProductDTO.builder()
+                    .productId(product.getId())
+                    .sellerId(product.getSeller().getId())
+                    .name(product.getName())
+                    .brand(product.getBrand())
+                    .description(product.getDescription())
+                    .cancellable(product.isCancellable())
+                    .returnable(product.isReturnable())
+                    .active(product.isActive())
+                    .category(categoryDTO)
+                    .build();
+        }).toList();
     }
 }

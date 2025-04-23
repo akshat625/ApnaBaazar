@@ -152,6 +152,19 @@ public class SellerController {
     }
 
 
+    @GetMapping("/products/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        return ResponseEntity.ok(sellerService.searchProducts(filters, page, size, sort, direction, userPrincipal));
+    }
+
+
 
 
 

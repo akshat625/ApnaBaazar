@@ -136,8 +136,6 @@ public class AdminController {
         return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.metadata.updated.success", null, locale)));
     }
 
-
-
     @PutMapping("/product/deactivate/{productId}")
     public ResponseEntity<GenericResponseDTO> deactivateProduct(@PathVariable String productId) throws MessagingException {
         adminService.deactivateProduct(productId);

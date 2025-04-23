@@ -10,19 +10,21 @@ import java.util.Map;
 
 public class ProductSpecification {
 
-    public static Specification<Product> withFilters(Map<String, String> filters) {
+    public static Specification<Product> withFilters(Map<String, String> filters, String sellerId) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            predicates.add(cb.equal(root.get("isDeleted"), false));
+
+            if (sellerId != null) {
+                predicates.add(cb.equal(root.get("seller").get("id"), sellerId));
+            }
             String category = filters.get("category");
             String brand = filters.get("brand");
             String name = filters.get("name");
             String active = filters.get("active");
-            String seller = filters.get("seller");
 
-            if (seller != null)
-                predicates.add(cb.equal(root.get("seller").get("id"), seller));
             if (category != null)
                 predicates.add(cb.equal(root.get("category").get("categoryId"), category));
             if (brand != null)

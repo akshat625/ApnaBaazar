@@ -521,11 +521,12 @@ public class AdminService {
     public List<ProductDTO> searchProducts(Map<String, String> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal) {
         Locale locale = LocaleContextHolder.getLocale();
 
+
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
                 Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, sortDirection, sort);
 
-        Specification<Product> spec = ProductSpecification.withFilters(filters);
+        Specification<Product> spec = ProductSpecification.withFilters(filters,null);
         Page<Product> productsPage = productRepository.findAll(spec, pageable);
 
         return productsPage.getContent().stream().map(product -> {
