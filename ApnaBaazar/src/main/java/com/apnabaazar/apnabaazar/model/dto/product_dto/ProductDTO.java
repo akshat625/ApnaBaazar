@@ -12,10 +12,15 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ProductDTO {
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String categoryId;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String sellerId;
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String productId;
 
     @NotBlank(message = "{product.name.not.blank}")
     @Size(max = 255, message = "{product.name.size}")

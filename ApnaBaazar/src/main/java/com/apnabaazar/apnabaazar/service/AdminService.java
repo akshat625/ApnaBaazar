@@ -464,6 +464,8 @@ public class AdminService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException(messageSource.getMessage("product.not.found", new Object[]{productId}, locale)));
 
+        User seller = product.getSeller();
+
         CategoryDTO categoryDTO = CategoryDTO.builder()
                 .categoryId(product.getCategory().getCategoryId())
                 .categoryName(product.getCategory().getName())
@@ -503,12 +505,13 @@ public class AdminService {
                             .quantity(variation.getQuantityAvailable())
                             .price(variation.getPrice())
                             .primaryImageUrl(primaryImageUrl)
-                            .secondaryImageUrl(secondaryImageUrls)
+//                            .secondaryImageUrl(secondaryImageUrls)
                             .build();
                 })
                 .collect(Collectors.toList());
 
         return ProductResponseDTO.builder()
+                .sellerId(seller.getId())
                 .product(productDTO)
                 .productVariation(variationDTOs)
                 .build();
@@ -532,6 +535,8 @@ public class AdminService {
                     .build();
 
             return ProductDTO.builder()
+                    .productId(product.getId())
+                    .sellerId(product.getSeller().getId())
                     .name(product.getName())
                     .brand(product.getBrand())
                     .description(product.getDescription())

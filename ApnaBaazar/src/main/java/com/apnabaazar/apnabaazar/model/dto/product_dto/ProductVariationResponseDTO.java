@@ -2,6 +2,7 @@ package com.apnabaazar.apnabaazar.model.dto.product_dto;
 
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,6 +19,8 @@ public class ProductVariationResponseDTO {
     private Integer quantity;
     private Double price;
     private String primaryImageUrl;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<String> secondaryImageUrl;
 
 }

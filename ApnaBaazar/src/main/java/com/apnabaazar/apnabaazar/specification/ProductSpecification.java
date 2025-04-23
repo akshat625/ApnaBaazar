@@ -19,6 +19,10 @@ public class ProductSpecification {
             String brand = filters.get("brand");
             String name = filters.get("name");
             String active = filters.get("active");
+            String seller = filters.get("seller");
+
+            if (seller != null)
+                predicates.add(cb.equal(root.get("seller").get("id"), seller));
 
             if (category != null)
                 predicates.add(cb.equal(root.get("category").get("categoryId"), category));
