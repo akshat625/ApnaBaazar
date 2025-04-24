@@ -183,7 +183,7 @@ public class SellerController {
         if (price != null) filters.put("price", price);
         if (quantity != null) filters.put("quantity", quantity);
         if (active != null) filters.put("active", active);
-        return ResponseEntity.ok(sellerService.getAllProductVariations(filters, page, size, sort, direction, userPrincipal,productId));
+        return ResponseEntity.ok(sellerService.searchProductVariations(filters, page, size, sort, direction, userPrincipal,productId));
     }
 
 
