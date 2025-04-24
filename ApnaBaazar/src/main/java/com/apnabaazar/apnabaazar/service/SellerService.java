@@ -4,12 +4,8 @@ import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.exceptions.*;
 import com.apnabaazar.apnabaazar.mapper.SellerMapper;
 import com.apnabaazar.apnabaazar.model.categories.Category;
-import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
-import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryMetadataFieldValueDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
@@ -33,19 +29,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jmx.export.metadata.InvalidMetadataException;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -224,7 +215,8 @@ public class SellerService {
         Product product = productVariation.getProduct();
         productService.validateSellerOwnership(product, seller);
         productService.validateDeleteState(product);
-        return productVariationService.mapToProductVariationDTO(productVariation, product);    }
+        return productVariationService.mapToProductVariationDTO(productVariation, product);
+    }
 
 
 

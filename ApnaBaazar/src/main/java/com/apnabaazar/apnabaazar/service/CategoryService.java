@@ -209,11 +209,44 @@ public class CategoryService {
     }
 
     void validateLeafCategory(Category category) {
-        if (!category.getSubCategories().isEmpty()) {
-            throw new InvalidLeafCategoryException(
-                    messageSource.getMessage("category.not.leaf", new Object[]{category.getName()}, LocaleContextHolder.getLocale())
-            );
+        if (!category.getSubCategories().isEmpty())
+            throw new InvalidLeafCategoryException(messageSource.getMessage("category.not.leaf", new Object[]{category.getName()}, LocaleContextHolder.getLocale()));
+    }
+
+
+    Map<String, String> getCategoryMetadataFilters(Category category) {
+        Map<String, String> metadataFilters = new HashMap<>();
+        Category current = category;
+
+        while (current != null) {
+            List<CategoryMetadataFieldValues> fieldValues =
+                    categoryMetadataFieldValuesRepository.findByCategory(current);
+            for (CategoryMetadataFieldValues fieldValue : fieldValues) {
+                String fieldName = fieldValue.getCategoryMetadataField().getName();
+                String values = fieldValue.getValues();
+                metadataFilters.putIfAbsent(fieldName, values);
+            }
+            current = current.getParentCategory();
         }
+        return metadataFilters;
+    }
+
+
+    List<String> getAllChildCategoriesIds(Category category) {
+        List<String> categoryIds = new ArrayList<>();
+        categoryIds.add(category.getCategoryId());
+
+        Queue<Category> queue = new LinkedList<>();
+        queue.add(category);
+
+        while (!queue.isEmpty()) {
+            Category current = queue.poll();
+            for (Category child : current.getSubCategories()) {
+                categoryIds.add(child.getCategoryId());
+                queue.add(child);
+            }
+        }
+        return categoryIds;
     }
 
 

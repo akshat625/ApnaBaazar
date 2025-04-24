@@ -9,6 +9,7 @@ import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryFilterDetailsDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
@@ -17,6 +18,7 @@ import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationResponseD
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.products.Product;
+import com.apnabaazar.apnabaazar.model.products.ProductVariation;
 import com.apnabaazar.apnabaazar.model.users.Address;
 import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
@@ -39,10 +41,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,6 +55,7 @@ public class CustomerService {
     private final ProductRepository productRepository;
     private final UserService userService;
     private final ProductService productService;
+    private final CategoryService categoryService;
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
     private final PasswordEncoder passwordEncoder;
@@ -151,6 +151,41 @@ public class CustomerService {
                 })
                 .toList();
     }
+
+
+    public CategoryFilterDetailsDTO getCategoryFilters(String categoryId) {
+        Category category = categoryService.getCategoryById(categoryId);
+        List<String> categoryIds = categoryService.getAllChildCategoriesIds(category);
+        Map<String, String> metadataFilters = categoryService.getCategoryMetadataFilters(category);
+        List<Product> products = productRepository.findByCategoryCategoryIdIn(categoryIds);
+
+        List<String> brands = products.stream().map(Product::getBrand).distinct().sorted().toList();
+
+        double minPrice = Double.MAX_VALUE;
+        double maxPrice = 0.0;
+
+        for (Product product : products) {
+            for (ProductVariation variation : product.getVariations()) {
+                if (variation.isActive() && variation.getPrice() != null) {
+                    minPrice = Math.min(minPrice, variation.getPrice());
+                    maxPrice = Math.max(maxPrice, variation.getPrice());
+                }
+            }
+        }
+        //case when no products or variations are found
+        if (minPrice == Double.MAX_VALUE) {
+            minPrice = 0.0;
+        }
+
+        return CategoryFilterDetailsDTO.builder()
+                .categoryName(category.getName())
+                .metadataFilters(metadataFilters)
+                .brands(brands)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .build();
+    }
+
 
     private Customer getCustomerByEmail(String email) {
         return (Customer) userService.getUserByEmail(email);

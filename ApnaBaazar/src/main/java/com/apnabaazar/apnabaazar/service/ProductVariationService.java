@@ -1,5 +1,6 @@
 package com.apnabaazar.apnabaazar.service;
 
+import com.apnabaazar.apnabaazar.exceptions.InvalidImageFormatException;
 import com.apnabaazar.apnabaazar.exceptions.InvalidSellerException;
 import com.apnabaazar.apnabaazar.exceptions.ProductVariationNotFoundException;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationDTO;
@@ -8,7 +9,6 @@ import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductVariationUpdateDTO
 import com.apnabaazar.apnabaazar.model.products.Product;
 import com.apnabaazar.apnabaazar.model.products.ProductVariation;
 import com.apnabaazar.apnabaazar.model.users.Seller;
-import com.apnabaazar.apnabaazar.repository.ProductRepository;
 import com.apnabaazar.apnabaazar.repository.ProductVariationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +26,7 @@ import java.util.Locale;
 @Service
 public class ProductVariationService {
 
-    private final ProductRepository productRepository;
     private final ProductVariationRepository productVariationRepository;
-    private final UserService userService;
     private final S3Service s3Service;
     private final ProductService productService;
     private final MessageSource messageSource;
@@ -69,7 +67,7 @@ public class ProductVariationService {
             uploadSecondaryImages(product.getId(), variation.getProductVariationId(), secondaryImages);
         } catch (IOException e) {
             log.error("Error updating images: {}", e.getMessage());
-            throw new RuntimeException("Failed to update images: " + e.getMessage());
+            throw new InvalidImageFormatException("Failed to update images: " + e.getMessage());
         }
     }
 

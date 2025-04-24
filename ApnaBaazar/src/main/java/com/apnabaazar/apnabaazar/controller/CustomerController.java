@@ -5,6 +5,7 @@ import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryFilterDetailsDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
@@ -111,5 +112,10 @@ public class CustomerController {
     @GetMapping("/product/{productId}")
     public ResponseEntity<ProductResponseDTO> getProduct(@PathVariable String productId) {
         return ResponseEntity.ok(customerService.getProduct(productId));
+    }
+
+    @GetMapping("/categories/filters/{categoryId}")
+    public ResponseEntity<CategoryFilterDetailsDTO> getCategoryFilters(@PathVariable String categoryId) {
+        return ResponseEntity.ok(customerService.getCategoryFilters(categoryId));
     }
 }

@@ -1,9 +1,7 @@
 package com.apnabaazar.apnabaazar.service;
 
-import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.exceptions.PasswordMismatchException;
 import com.apnabaazar.apnabaazar.exceptions.ResourceNotFoundException;
-import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.users.Address;
@@ -21,10 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Locale;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -36,7 +31,6 @@ public class UserService {
     private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
     private final MessageSource messageSource;
-    private final S3Service s3Service;
 
     public User getUserByEmail(String email) {
         Locale locale = LocaleContextHolder.getLocale();

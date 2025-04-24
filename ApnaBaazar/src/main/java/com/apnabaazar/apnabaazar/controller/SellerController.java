@@ -5,11 +5,9 @@ import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
-import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
-import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.mail.MessagingException;
@@ -37,7 +35,6 @@ public class SellerController {
     private final SellerService sellerService;
     private final S3Service s3Service;
     private final MessageSource messageSource;
-    private final CustomerService customerService;
     private Locale locale;
 
     @ModelAttribute
