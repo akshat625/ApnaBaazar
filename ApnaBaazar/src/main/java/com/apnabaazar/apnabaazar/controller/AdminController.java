@@ -44,18 +44,20 @@ public class AdminController {
     public ResponseEntity<List<CustomerResponseDTO>> getCustomers(
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "0") int pageOffset,
-            @RequestParam(defaultValue = "id") String sort
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(required = false) String email
     ) {
-        return ResponseEntity.ok(adminService.getCustomers(pageSize, pageOffset, sort));
+        return ResponseEntity.ok(adminService.getCustomers(pageSize, pageOffset, sort,email));
     }
 
     @GetMapping("/sellers")
     public ResponseEntity<List<SellerResponseDTO>> getAllSellers(
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "0") int pageOffset,
-            @RequestParam(defaultValue = "id") String sort
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(required = false) String email
     ) {
-        return ResponseEntity.ok(adminService.getSellers(pageSize, pageOffset, sort));
+        return ResponseEntity.ok(adminService.getSellers(pageSize, pageOffset, sort,email));
     }
 
     @PutMapping("/activate/customer")

@@ -63,15 +63,23 @@ public class AdminService {
     private final UserRepository userRepository;
 
 
-    public List<CustomerResponseDTO> getCustomers(int pageSize, int pageOffset, String sort) {
+    public List<CustomerResponseDTO> getCustomers(int pageSize, int pageOffset, String sort, String email) {
         Pageable pageable = PageRequest.of(pageOffset, pageSize, Sort.by(sort));
-        Page<Customer> customerPage = customerRepository.findAll(pageable);
+        Page<Customer> customerPage;
+        if (email != null && !email.isBlank())
+            customerPage = customerRepository.findByEmailContainingIgnoreCase(email, pageable);
+        else
+            customerPage = customerRepository.findAll(pageable);
         return customerPage.stream().map(Mapper::fromCustomer).toList();
     }
 
-    public List<SellerResponseDTO> getSellers(int pageSize, int pageOffset, String sort) {
+    public List<SellerResponseDTO> getSellers(int pageSize, int pageOffset, String sort, String email) {
         Pageable pageable = PageRequest.of(pageOffset, pageSize, Sort.by(sort));
-        Page<Seller> sellerPage = sellerRepository.findAll(pageable);
+        Page<Seller> sellerPage;
+        if (email != null && !email.isBlank())
+            sellerPage = sellerRepository.findByEmailContainingIgnoreCase(email, pageable);
+        else
+            sellerPage = sellerRepository.findAll(pageable);
         return sellerPage.stream().map(Mapper::fromSeller).toList();
     }
 
