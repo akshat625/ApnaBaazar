@@ -94,9 +94,10 @@ public class AdminController {
             @RequestParam(required = false, defaultValue = "0") int offset,
             @RequestParam(required = false, defaultValue = "name") String sort,
             @RequestParam(required = false, defaultValue = "asc") String order,
-            @RequestParam(required = false, defaultValue = "") String query
+            @RequestParam(required = false) String query
+
     ) {
-        return ResponseEntity.ok(adminService.getALlMetadataFields(max, offset, sort, order, query));
+        return ResponseEntity.ok(adminService.getAllMetadataFields(max, offset, sort, order, query));
     }
 
     @PostMapping("/category")
@@ -116,7 +117,7 @@ public class AdminController {
             @RequestParam(required = false, defaultValue = "0") int offset,
             @RequestParam(required = false, defaultValue = "name") String sort,
             @RequestParam(required = false, defaultValue = "asc") String order,
-            @RequestParam(required = false, defaultValue = "") String query
+            @RequestParam(required = false) String query
     ) {
         return ResponseEntity.ok(adminService.getAllCategories(max, offset, sort, order, query));
     }

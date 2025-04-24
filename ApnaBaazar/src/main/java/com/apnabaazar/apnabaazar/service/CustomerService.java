@@ -132,12 +132,9 @@ public class CustomerService {
             List<Category> rootCategories = categoryRepository.findByParentCategory_CategoryId(null);
             return convertToCustomerDTOList(rootCategories);
         }
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
-        List<Category> siblingCategories = categoryRepository
-                .findByParentCategory_CategoryId(category.getParentCategory().getCategoryId());
-
-        return convertToCustomerDTOList(siblingCategories);
+        Category category = categoryService.getCategoryById(categoryId);
+        List<Category> childCategories = category.getSubCategories().stream().toList();
+        return convertToCustomerDTOList(childCategories);
     }
 
 

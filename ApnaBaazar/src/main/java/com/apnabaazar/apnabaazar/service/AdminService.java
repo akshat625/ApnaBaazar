@@ -149,7 +149,7 @@ public class AdminService {
     }
 
 
-    public List<MetadataFieldDTO> getALlMetadataFields(int max, int offset, String sort, String order, String query) {
+    public List<MetadataFieldDTO> getAllMetadataFields(int max, int offset, String sort, String order, String query) {
         Sort.Direction direction = Sort.Direction.fromOptionalString(order).orElse(Sort.Direction.ASC);
         Pageable pageable = PageRequest.of(offset, max, Sort.by(direction, sort));
 
@@ -283,7 +283,6 @@ public class AdminService {
         String sellerEmail = product.getSeller().getEmail();
         emailService.sendProductActivationEmail(sellerEmail, "Product Activated", product);
     }
-
 
 
     public ProductResponseDTO getProduct(String productId) {

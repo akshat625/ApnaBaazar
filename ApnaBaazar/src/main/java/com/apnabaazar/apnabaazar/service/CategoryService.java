@@ -132,6 +132,8 @@ public class CategoryService {
                     .toList();
             responseDTO.setChildren(childrenDTOs);
         }
+        else
+            responseDTO.setChildren(new ArrayList<>());
          responseDTO.setMetadataFields(getAllMetadataFieldsFromHierarchy(category));
 
         return responseDTO;
