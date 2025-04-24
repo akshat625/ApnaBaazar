@@ -1,6 +1,7 @@
 package com.apnabaazar.apnabaazar.exceptions;
 
 import com.apnabaazar.apnabaazar.model.error.ErrorResponse;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -199,6 +200,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ProductVariationNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleProductVariationNotFoundException(ProductVariationNotFoundException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ErrorResponse> handlePropertyReferenceException(PropertyReferenceException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
