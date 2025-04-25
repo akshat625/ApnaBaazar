@@ -1,5 +1,8 @@
 package com.apnabaazar.apnabaazar.controller;
 import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.model.dto.AdminProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.UserDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
@@ -13,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +43,24 @@ public class AdminController {
     public String index(){
         return "Admin Page";
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UserDTO> getProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        return ResponseEntity.ok(adminService.getProfile(userPrincipal));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<GenericResponseDTO> updateProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody AdminProfileUpdateDTO adminDTO) {
+        adminService.updateProfile(userPrincipal, adminDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("admin.profile.updated", null, locale)));
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<GenericResponseDTO> updateAdminPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
+        adminService.updateAdminPassword(userPrincipal, updatePasswordDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
+    }
+
 
     @GetMapping("/customers")
     public ResponseEntity<List<CustomerResponseDTO>> getCustomers(
@@ -85,7 +107,8 @@ public class AdminController {
     @PostMapping("/metadata-fields")
     public ResponseEntity<GenericResponseDTO> addMetadataField(@Valid @RequestBody MetadataFieldDTO metadataFieldDTO) {
         adminService.addMetadataField(metadataFieldDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("metadata.field.added.success", null, locale)));
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("metadata.field.added.success",null,locale)), HttpStatus.CREATED);
+
     }
 
     @GetMapping("/metadata-fields")
@@ -101,9 +124,9 @@ public class AdminController {
     }
 
     @PostMapping("/category")
-    public ResponseEntity<GenericResponseDTO> addCategory(@RequestBody CategoryDTO categoryDTO) {
+    public ResponseEntity<GenericResponseDTO> addCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
         adminService.addCategory(categoryDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.added.success", null, locale)));
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("category.added.success",null,locale)), HttpStatus.CREATED);
     }
 
     @GetMapping("/category/{categoryId}")
@@ -129,13 +152,15 @@ public class AdminController {
     }
 
     @PostMapping("/category/{categoryId}")
-    public ResponseEntity<GenericResponseDTO> addCategoryMetadataFieldForCategory(@PathVariable String categoryId, @Valid @RequestBody List<CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
-        adminService.addCategoryMetadataFieldForCategory(categoryId, categoryMetadataFieldValueDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.metadata.added.success", null, locale)));
+    public ResponseEntity<GenericResponseDTO> addCategoryMetadataFieldForCategory(@PathVariable String categoryId, @Valid @RequestBody List< @Valid CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
+        adminService.addCategoryMetadataFieldValuesForCategory(categoryId, categoryMetadataFieldValueDTO);
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("category.metadata.added.success",null,locale)), HttpStatus.CREATED);
     }
-    @PutMapping("/category/{categoryId}")
-    public ResponseEntity<GenericResponseDTO> updateCategoryMetadataFieldForCategory(@PathVariable String categoryId, @Valid @RequestBody List<CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
-        adminService.updateCategoryMetadataFieldForCategory(categoryId, categoryMetadataFieldValueDTO);
+
+
+    @PutMapping("/category/metadata/{categoryId}")
+    public ResponseEntity<GenericResponseDTO> updateCategoryMetadataFieldForCategory(@PathVariable String categoryId, @RequestBody @Valid List<@Valid CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
+        adminService.updateCategoryMetadataFieldValuesForCategory(categoryId, categoryMetadataFieldValueDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.metadata.updated.success", null, locale)));
     }
 
@@ -157,7 +182,7 @@ public class AdminController {
     }
 
     @GetMapping("/products/search")
-    public ResponseEntity<List<ProductDTO>> searchProducts(
+    public ResponseEntity<List<ProductResponseDTO>> searchProducts(
             @RequestParam Map<String, String> filters,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,

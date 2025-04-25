@@ -7,6 +7,9 @@ import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataField;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValueId;
 import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataFieldValues;
+import com.apnabaazar.apnabaazar.model.dto.AdminProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.UserDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
@@ -40,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -61,6 +65,7 @@ public class AdminService {
     private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
     private final MessageSource messageSource;
     private final UserRepository userRepository;
+    private final UserService userService;
 
 
     public List<CustomerResponseDTO> getCustomers(int pageSize, int pageOffset, String sort, String email) {
@@ -211,11 +216,15 @@ public class AdminService {
 
 
 
-    public void addCategoryMetadataFieldForCategory(String categoryId, List<CategoryMetadataFieldValueDTO> fieldValueDTOList) {
+    public void addCategoryMetadataFieldValuesForCategory(String categoryId, List<CategoryMetadataFieldValueDTO> fieldValueDTOList) {
         Locale locale = LocaleContextHolder.getLocale();
         Category category = categoryService.getCategoryById(categoryId);
 
         for (CategoryMetadataFieldValueDTO fieldValueDTO : fieldValueDTOList) {
+            CategoryMetadataFieldValueId id = new CategoryMetadataFieldValueId(categoryId, fieldValueDTO.getFieldId());
+            if(categoryMetadataFieldValuesRepository.existsById(id))
+                throw new DuplicateResourceException(messageSource.getMessage("metadata.field.already.exists", null, locale));
+
             CategoryMetadataField field = categoryService.fetchMetadataField(fieldValueDTO.getFieldId(), locale);
             Set<String> uniqueValues = categoryService.extractUniqueMetadataValues(fieldValueDTO.getValues(), field.getName(), locale);
 
@@ -229,7 +238,7 @@ public class AdminService {
         }
     }
 
-    public void updateCategoryMetadataFieldForCategory(String categoryId, List<CategoryMetadataFieldValueDTO> fieldValueDTOList) {
+    public void updateCategoryMetadataFieldValuesForCategory(String categoryId, List<CategoryMetadataFieldValueDTO> fieldValueDTOList) {
         Locale locale = LocaleContextHolder.getLocale();
         Category category = categoryService.getCategoryById(categoryId);
 
@@ -266,6 +275,7 @@ public class AdminService {
             throw new InvalidProductStateException(messageSource.getMessage("product.already.inactive", new Object[]{productId}, locale));
         }
         product.setActive(false);
+//        product.getVariations().forEach(variation -> variation.setActive(false));
         productRepository.save(product);
 
         String sellerEmail = product.getSeller().getEmail();
@@ -310,13 +320,39 @@ public class AdminService {
                 .build();
     }
 
-    public List<ProductDTO> searchProducts(Map<String, String> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal) {
+    public List<ProductResponseDTO> searchProducts(Map<String, String> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal) {
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ?
                 Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, sortDirection, sort);
         Specification<Product> spec = ProductSpecification.withFilters(filters,null);
-        return productService.getProductDTOS(pageable, spec, productRepository);
+        return productService.buildProductResponseDTOs(pageable, spec, productRepository);
     }
+
+    public UserDTO getProfile(UserPrincipal userPrincipal) {
+        User admin = userRepository.findByEmail(userPrincipal.getUsername()).orElseThrow(() -> new UserNotFoundException(userPrincipal.getUsername()));
+
+        return UserDTO.builder()
+                .firstName(admin.getFirstName())
+                .middleName(admin.getMiddleName())
+                .lastName(admin.getLastName())
+                .email(admin.getEmail())
+                .build();
+    }
+
+    public void updateProfile(UserPrincipal userPrincipal, AdminProfileUpdateDTO adminDTO) {
+        User admin = userRepository.findByEmail(userPrincipal.getUsername()).orElseThrow(() -> new UserNotFoundException("Admin not found"));
+        admin.setFirstName(userService.getUpdatedValue(adminDTO.getFirstName(), admin.getFirstName()));
+        admin.setMiddleName(userService.getUpdatedValue(adminDTO.getMiddleName(), admin.getMiddleName()));
+        admin.setLastName(userService.getUpdatedValue(adminDTO.getLastName(), admin.getLastName()));
+        userRepository.save(admin);
+    }
+
+    public void updateAdminPassword(UserPrincipal userPrincipal, @Valid UpdatePasswordDTO updatePasswordDTO) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User admin = userRepository.findByEmail(userPrincipal.getUsername()).orElseThrow(() -> new UserNotFoundException("Admin not found"));
+        userService.updatePassword(admin, updatePasswordDTO);
+    }
+
 }
 
 
