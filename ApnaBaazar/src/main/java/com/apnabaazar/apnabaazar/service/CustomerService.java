@@ -24,6 +24,8 @@ import com.apnabaazar.apnabaazar.model.users.Customer;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.model.users.User;
 import com.apnabaazar.apnabaazar.repository.*;
+import com.apnabaazar.apnabaazar.specification.ProductSpecification;
+import com.apnabaazar.apnabaazar.specification.ProductVariationSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,11 +62,7 @@ public class CustomerService {
     private final UserService userService;
     private final ProductService productService;
     private final CategoryService categoryService;
-    private final CategoryMetadataFieldValuesRepository categoryMetadataFieldValuesRepository;
-    private final MessageSource messageSource;
-    private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
-    private final AddressRepository addressRepository;
 
 
     @Value("${aws.s3.default-customer-image}")
@@ -189,4 +191,12 @@ public class CustomerService {
     }
 
 
+    public List<ProductResponseDTO> getAllProducts(String categoryId, Map<String, String> filters, int page, int size, String sort, String direction, UserPrincipal userPrincipal) {
+        Category category = categoryService.getCategoryById(categoryId);
+        List<String> childCategories = categoryService.getAllChildCategoriesIds(category);
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
+        Specification<Product> spec = ProductSpecification.withCustomerFilters(childCategories, filters);
+        return productService.buildProductResponseDTOs(pageable, spec, productRepository);
+    }
 }

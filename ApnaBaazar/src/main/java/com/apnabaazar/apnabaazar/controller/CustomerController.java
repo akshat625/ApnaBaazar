@@ -8,6 +8,7 @@ import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryFilterDetailsDTO;
 import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
 import com.apnabaazar.apnabaazar.service.CustomerService;
@@ -16,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -59,7 +62,7 @@ public class CustomerController {
     @PostMapping("/address")
     public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody AddressDTO  addressDTO) {
         customerService.addCustomerAddress(userPrincipal,addressDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.added", null, locale)));
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("address.added",null,locale)), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/address/{addressId}")
@@ -118,4 +121,18 @@ public class CustomerController {
     public ResponseEntity<CategoryFilterDetailsDTO> getCategoryFilters(@PathVariable String categoryId) {
         return ResponseEntity.ok(customerService.getCategoryFilters(categoryId));
     }
+
+    @GetMapping("/products/{categoryId}")
+    public ResponseEntity<List<ProductResponseDTO>> getAllProducts(
+            @PathVariable String categoryId,
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        return ResponseEntity.ok(customerService.getAllProducts(categoryId, filters, page, size, sort, direction, userPrincipal));
+    }
+
 }
