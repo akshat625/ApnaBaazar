@@ -82,6 +82,12 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getSellers(pageSize, pageOffset, sort,email));
     }
 
+    @PutMapping("/unlock/{userId}")
+    public ResponseEntity<GenericResponseDTO> unlockUser(@PathVariable String userId) throws MessagingException {
+        adminService.unlockUser(userId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("user.unlocked.success", null, locale)));
+    }
+
     @PutMapping("/activate/customer")
     public ResponseEntity<GenericResponseDTO> activateCustomer(@RequestParam String id) throws MessagingException {
         return adminService.activateCustomer(id);

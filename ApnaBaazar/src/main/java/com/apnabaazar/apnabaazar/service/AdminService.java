@@ -353,6 +353,19 @@ public class AdminService {
         userService.updatePassword(admin, updatePasswordDTO);
     }
 
+    public void unlockUser(String userId) throws MessagingException {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(messageSource.getMessage("seller.not.found", new Object[]{userId}, LocaleContextHolder.getLocale())));
+        if (user.isDeleted())
+            throw new UserNotFoundException( messageSource.getMessage("user.unlock.deleted", null, locale));
+        if (!user.isLocked())
+            throw new AccountLockedException(messageSource.getMessage("user.unlock.not.locked", null, locale));
+        user.setLocked(false);
+        user.setInvalidAttemptCount(0);
+        userRepository.save(user);
+        emailService.sendAccountUnlockedEmail(user.getEmail(),"Account Unlocked");
+    }
 }
 
 
