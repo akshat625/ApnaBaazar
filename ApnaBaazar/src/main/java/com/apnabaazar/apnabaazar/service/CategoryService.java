@@ -13,6 +13,7 @@ import com.apnabaazar.apnabaazar.repository.CategoryRepository;
 import com.apnabaazar.apnabaazar.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.*;
 @Setter
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
@@ -31,18 +33,21 @@ public class CategoryService {
     private final MessageSource messageSource;
 
     boolean isDuplicateInRoot(String categoryName) {
+        log.debug("Checking for duplicate root category with name: {}", categoryName);
         return categoryRepository.findByParentCategory_CategoryId(null)
                 .stream()
                 .anyMatch(cat -> cat.getName().equalsIgnoreCase(categoryName));
     }
 
     boolean isDuplicateInSiblings(Category parent, String categoryName) {
+        log.debug("Checking for duplicate category '{}' among siblings of parent category ID: {}", categoryName, parent.getCategoryId());
         return categoryRepository.findByParentCategory_CategoryId(parent.getCategoryId())
                 .stream()
                 .anyMatch(cat -> cat.getName().equalsIgnoreCase(categoryName));
     }
 
     boolean isDuplicateInHierarchy(Category parent, String categoryName) {
+        log.debug("Checking for '{}' in parent hierarchy", categoryName);
         while (parent != null) {
             if (parent.getName().equalsIgnoreCase(categoryName)) {
                 return true;
@@ -53,17 +58,21 @@ public class CategoryService {
     }
 
     private boolean isParentCategoryAssociatedWithProduct(Category parent) {
+        log.debug("Checking if parent category ID: {} is associated with any product", parent.getCategoryId());
         return productRepository.existsByCategory(parent);
     }
 
     void saveCategory(String name, Category parent) {
+        log.info("Saving new category: '{}' with parent ID: {}", name, parent != null ? parent.getCategoryId() : "null");
         Category category = Category.builder()
                 .name(name)
                 .parentCategory(parent)
                 .build();
         categoryRepository.save(category);
     }
+
     boolean isDuplicateInDescendants(Category parent, String updatedName) {
+        log.debug("Checking if name '{}' exists in descendants of category ID: {}", updatedName, parent.getCategoryId());
         if (parent.getSubCategories().isEmpty())
             return false;
 
@@ -71,13 +80,15 @@ public class CategoryService {
             if (child.getName().equals(updatedName))
                 return true;
 
-            isDuplicateInDescendants(child, updatedName);
+            if (isDuplicateInDescendants(child, updatedName))
+                return true;
         }
         return false;
     }
 
     public void validateNewCategoryName(String categoryName, Category parent) {
         Locale locale = LocaleContextHolder.getLocale();
+        log.debug("Validating new category name: '{}' under parent: {}", categoryName, parent != null ? parent.getCategoryId() : "null");
 
         if (isDuplicateInRoot(categoryName))
             throw new DuplicateRootCategoryException(messageSource.getMessage("category.root.duplicate", new Object[]{categoryName}, locale));
@@ -93,35 +104,37 @@ public class CategoryService {
 
     void validateUpdatedCategoryName(String updatedName, Category currentCategory, Category parentCategory) {
         Locale locale = LocaleContextHolder.getLocale();
+        log.debug("Validating updated category name: '{}' for current category ID: {}", updatedName, currentCategory.getCategoryId());
+
         if (isDuplicateInRoot(updatedName))
             throw new DuplicateRootCategoryException(messageSource.getMessage("category.root.duplicate", new Object[]{updatedName}, locale));
         if (isDuplicateInSiblings(parentCategory, updatedName))
-            throw new DuplicateSiblingCategoryException(messageSource.getMessage("category.sibling.duplicate", new Object[]{updatedName,parentCategory.getName()}, locale));
+            throw new DuplicateSiblingCategoryException(messageSource.getMessage("category.sibling.duplicate", new Object[]{updatedName, parentCategory.getName()}, locale));
         if (isDuplicateInHierarchy(parentCategory, updatedName))
             throw new DuplicateInParentHierarchyException(messageSource.getMessage("category.hierarchy.duplicate", new Object[]{updatedName}, locale));
-        if (isDuplicateInDescendants(currentCategory, updatedName)) {
+        if (isDuplicateInDescendants(currentCategory, updatedName))
             throw new DuplicateInParentHierarchyException(messageSource.getMessage("category.descendants.duplicate", new Object[]{updatedName}, locale));
-        }
     }
-
-
 
     public Category getCategoryById(String categoryId) {
         Locale locale = LocaleContextHolder.getLocale();
+        log.debug("Fetching category by ID: {}", categoryId);
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale)));
+                .orElseThrow(() -> {
+                    log.error("Category not found with ID: {}", categoryId);
+                    return new CategoryNotFoundException(messageSource.getMessage("category.not.found", new Object[]{categoryId}, locale));
+                });
     }
 
-     CategoryResponseDTO buildCategoryResponseDTO(Category category) {
+    CategoryResponseDTO buildCategoryResponseDTO(Category category) {
+        log.debug("Building response DTO for category ID: {}", category.getCategoryId());
         CategoryResponseDTO responseDTO = new CategoryResponseDTO();
         responseDTO.setCategoryId(category.getCategoryId());
         responseDTO.setName(category.getName());
 
-        //parent
         if (category.getParentCategory() != null)
             responseDTO.setParentHierarchy(buildParentHierarchy(category));
 
-        //adding immediate children categories
         if (!category.getSubCategories().isEmpty()) {
             List<CategoryDTO> childrenDTOs = category.getSubCategories().stream()
                     .map(child -> CategoryDTO.builder()
@@ -131,15 +144,16 @@ public class CategoryService {
                             .build())
                     .toList();
             responseDTO.setChildren(childrenDTOs);
-        }
-        else
+        } else {
             responseDTO.setChildren(new ArrayList<>());
-         responseDTO.setMetadataFields(getAllMetadataFieldsFromHierarchy(category));
+        }
 
+        responseDTO.setMetadataFields(getAllMetadataFieldsFromHierarchy(category));
         return responseDTO;
     }
 
     List<CategoryMetadataFieldValueDTO> getAllMetadataFieldsFromHierarchy(Category category) {
+        log.debug("Fetching metadata fields from hierarchy for category ID: {}", category.getCategoryId());
         List<CategoryMetadataFieldValueDTO> metadataDTOs = new ArrayList<>();
         Category current = category;
 
@@ -164,8 +178,8 @@ public class CategoryService {
         return metadataDTOs;
     }
 
-
     List<CategoryDTO> buildParentHierarchy(Category category) {
+        log.debug("Building parent hierarchy for category ID: {}", category.getCategoryId());
         List<CategoryDTO> hierarchy = new ArrayList<>();
         Category current = category.getParentCategory();
 
@@ -176,21 +190,26 @@ public class CategoryService {
                             current.getParentCategory().getCategoryId() : null)
                     .categoryId(current.getCategoryId())
                     .build();
-            hierarchy.add(0, parentDTO); // Add at beginning to maintain root->leaf order
+            hierarchy.add(0, parentDTO);
             current = current.getParentCategory();
         }
         return hierarchy;
     }
 
-
     CategoryMetadataField fetchMetadataField(String fieldId, Locale locale) {
+        log.debug("Fetching metadata field by ID: {}", fieldId);
         return categoryMetadataFieldRepository.findById(fieldId)
-                .orElseThrow(() -> new MetadataFieldNotFoundException(
-                        messageSource.getMessage("metadata.field.not.found", new Object[]{fieldId}, locale)));
+                .orElseThrow(() -> {
+                    log.error("Metadata field not found with ID: {}", fieldId);
+                    return new MetadataFieldNotFoundException(
+                            messageSource.getMessage("metadata.field.not.found", new Object[]{fieldId}, locale));
+                });
     }
 
     Set<String> extractUniqueMetadataValues(String values, String fieldName, Locale locale) {
+        log.debug("Extracting unique metadata values for field: {}", fieldName);
         if (values == null || values.isBlank()) {
+            log.error("Metadata values are missing for field: {}", fieldName);
             throw new InvalidMetadataFieldValueException(
                     messageSource.getMessage("metadata.values.required", new Object[]{fieldName}, locale));
         }
@@ -201,28 +220,32 @@ public class CategoryService {
         for (String value : splitValues) {
             String trimmed = value.trim();
             if (trimmed.isEmpty()) continue;
-            if (!uniqueValues.add(trimmed))
+            if (!uniqueValues.add(trimmed)) {
+                log.error("Duplicate metadata value '{}' found for field: {}", trimmed, fieldName);
                 throw new DuplicateMetadataAssignmentException(messageSource.getMessage("metadata.values.duplicate", new Object[]{trimmed, fieldName}, locale));
+            }
         }
-        if (uniqueValues.isEmpty())
+        if (uniqueValues.isEmpty()) {
+            log.error("No valid metadata values provided for field: {}", fieldName);
             throw new InvalidMetadataFieldValueException(messageSource.getMessage("metadata.values.required", new Object[]{fieldName}, locale));
+        }
 
         return uniqueValues;
     }
 
     void validateLeafCategory(Category category) {
+        log.debug("Validating if category ID: {} is a leaf category", category.getCategoryId());
         if (!category.getSubCategories().isEmpty())
             throw new InvalidLeafCategoryException(messageSource.getMessage("category.not.leaf", new Object[]{category.getName()}, LocaleContextHolder.getLocale()));
     }
 
-
     Map<String, String> getCategoryMetadataFilters(Category category) {
+        log.debug("Generating metadata filters for category ID: {}", category.getCategoryId());
         Map<String, String> metadataFilters = new HashMap<>();
         Category current = category;
 
         while (current != null) {
-            List<CategoryMetadataFieldValues> fieldValues =
-                    categoryMetadataFieldValuesRepository.findByCategory(current);
+            List<CategoryMetadataFieldValues> fieldValues = categoryMetadataFieldValuesRepository.findByCategory(current);
             for (CategoryMetadataFieldValues fieldValue : fieldValues) {
                 String fieldName = fieldValue.getCategoryMetadataField().getName();
                 String values = fieldValue.getValues();
@@ -233,8 +256,8 @@ public class CategoryService {
         return metadataFilters;
     }
 
-
     List<String> getAllChildCategoriesIds(Category category) {
+        log.debug("Fetching all child category IDs for category ID: {}", category.getCategoryId());
         List<String> categoryIds = new ArrayList<>();
         categoryIds.add(category.getCategoryId());
 
@@ -250,6 +273,4 @@ public class CategoryService {
         }
         return categoryIds;
     }
-
-
 }
