@@ -1,16 +1,23 @@
 package com.apnabaazar.apnabaazar.exceptions;
 
 import com.apnabaazar.apnabaazar.model.error.ErrorResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.NoSuchMessageException;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jmx.export.metadata.InvalidMetadataException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -18,9 +25,10 @@ import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
+@RequiredArgsConstructor
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private final MessageSource messageSource;
 
     @ExceptionHandler(PasswordMismatchException.class)
     public ResponseEntity<ErrorResponse> handlePasswordMismatch(PasswordMismatchException e) {
@@ -110,7 +118,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e) {
-        return buildErrorResponse(e.getMessage(), HttpStatus.FORBIDDEN);
+        return buildErrorResponse(messageSource.getMessage("access.denied.message", null, LocaleContextHolder.getLocale()), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(DuplicateRootCategoryException.class)
@@ -126,6 +134,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateInParentHierarchyException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateInParentHierarchyException(DuplicateInParentHierarchyException e) {
         return buildErrorResponse(e.getMessage(), HttpStatus.CONFLICT);
+    }
+
+@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.METHOD_NOT_ALLOWED);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -223,6 +236,15 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(NoSuchMessageException.class)
+    public ResponseEntity<ErrorResponse> handleNoSuchMessageException(NoSuchMessageException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+        return buildErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
 
     private ResponseEntity<ErrorResponse> buildErrorResponse(String message, HttpStatus status) {
         ErrorResponse errorResponse = new ErrorResponse(LocalDateTime.now(), status.value(), status.getReasonPhrase(), message);
@@ -239,13 +261,42 @@ public class GlobalExceptionHandler {
             errors.put(error.getField(), error.getDefaultMessage());
         });
 
-        responseBody.put("timestamp", LocalDateTime.now());
-        responseBody.put("status", HttpStatus.BAD_REQUEST.value());
-        responseBody.put("error", "Validation Failed");
-        responseBody.put("message", errors);
+        responseBody.put(messageSource.getMessage("response.timestamp", null, LocaleContextHolder.getLocale()), LocalDateTime.now());
+        responseBody.put(messageSource.getMessage("response.status", null, LocaleContextHolder.getLocale()), HttpStatus.BAD_REQUEST.value());
+        responseBody.put(messageSource.getMessage("response.error", null, LocaleContextHolder.getLocale()), messageSource.getMessage("error.validation.failed", null, LocaleContextHolder.getLocale()));
+        responseBody.put(messageSource.getMessage("response.message", null, LocaleContextHolder.getLocale()), errors);
+
+
 
         return new ResponseEntity<>(responseBody, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleHandlerMethodValidationException(HandlerMethodValidationException ex) {
+        Map<String, Object> responseBody = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getAllErrors().forEach(error -> {
+            if (error instanceof org.springframework.validation.FieldError fieldError) {
+                errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+            } else if (error instanceof org.springframework.validation.ObjectError objectError) {
+                errors.put(objectError.getObjectName(), objectError.getDefaultMessage());
+            } else {
+                errors.put("unknown", error.getDefaultMessage());
+            }
+        });
+
+        responseBody.put(messageSource.getMessage("response.timestamp", null, LocaleContextHolder.getLocale()), LocalDateTime.now());
+        responseBody.put(messageSource.getMessage("response.status", null, LocaleContextHolder.getLocale()), HttpStatus.BAD_REQUEST.value());
+        responseBody.put(messageSource.getMessage("response.error", null, LocaleContextHolder.getLocale()), messageSource.getMessage("error.validation.failed", null, LocaleContextHolder.getLocale()));
+        responseBody.put(messageSource.getMessage("response.message", null, LocaleContextHolder.getLocale()), errors);
+
+
+
+        return new ResponseEntity<>(responseBody, HttpStatus.BAD_REQUEST);
+    }
+
+
 
 
 }
