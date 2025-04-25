@@ -1,8 +1,11 @@
 spring:
+  config:
+    import: classpath:env.properties
+
   datasource:
     url: jdbc:mysql://localhost:3306/apna_baazar_db?createDatabaseIfNotExist=true
-    username: root
-    password: akshat123
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -11,22 +14,20 @@ spring:
       ddl-auto: update
     properties:
       hibernate:
-#        format_sql: true
         use_sql_comments: true
-
-
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: akshat.srivastava@tothenew.com
-    password: ytob tvzb ynkc aibn
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+
   data:
     redis:
       port: 6379
@@ -39,7 +40,7 @@ spring:
       max-request-size: 5MB
 
 jwt:
-  secret: ad507c0734905dec36da5d848664533019367e381c0545a1e6d76d8ee281163e8777e1ce8833ecff1bb7ad6c0344bf334690d4d7be30ae36108b353c0e0725bc886ce7c9abae8d165d53ff8ab24ea83e5388bdd31896fbe41d7f9cc500e227cd535fa51ae01da5d3ad1245d8794f0b09487d322956a29217b457aa7338d7165cd895f934a91fea51b866a9cc750d3373b2a9007fe64421811d2cbf4c496f4e4299d3916d97e547dcee23098c36a4672039cd92b8aa93aaa41f9cb0d1c2036357f2a28312edbbab726e16c3e59541f9031b1626f3970247cc2ad7b2920e8393dc20eb96e66171ab973c88bac8537e8f162153a9c60ea618428011b7e71f59e49f
+  secret: ${JWT_SECRET}
   expiration:
     activation: 10800000
     access: 10800000000
@@ -55,21 +56,19 @@ logging:
 
 apnabaazar:
   admin:
-    email: akshatsrivastava625@gmail.com
-    password: 0105T@@t
+    email: ${APNABAAZAR_ADMIN_EMAIL}
+    password: ${APNABAAZAR_ADMIN_PASSWORD}
 
 aws:
   credentials:
-    access-key: AKIAXBZV5KDORIHCAYHF
-    secret-key: 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
+    access-key: ${AWS_CREDENTIALS_ACCESS_KEY}
+    secret-key: ${AWS_CREDENTIALS_SECRET_KEY}
   region:
-    static: us-east-1
+    static: ${AWS_REGION_STATIC}
   s3:
-    bucket: apna-baazar-bucket
-    default-seller-image: https://apna-baazar-bucket.s3.amazonaws.com/users/seller_default.jpg
-    default-customer-image: https://apna-baazar-bucket.s3.amazonaws.com/users/seller_default.jpg
-
+    bucket: ${AWS_S3_BUCKET}
+    default-seller-image: https://${AWS_S3_BUCKET}.s3.amazonaws.com/users/seller_default.jpg
+    default-customer-image: https://${AWS_S3_BUCKET}.s3.amazonaws.com/users/seller_default.jpg
 
 server:
   port: 8080
-
