@@ -15,24 +15,31 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 //@Transactional
 public class AuthService {
 
     private final TokenBlacklistService tokenBlacklistService;
+    private final MessageSource messageSource;
     private final RedisTemplate<String, String> redisTemplate;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -43,167 +50,250 @@ public class AuthService {
 
 
     public String customerSignup(CustomerDTO input) {
+        Locale locale = LocaleContextHolder.getLocale();
+        log.info("Starting customer signup process for email: {}", input.getEmail());
+
         if (!input.getPassword().equals(input.getConfirmPassword())) {
-            throw new PasswordMismatchException("Passwords don't match");
+            log.warn("Password mismatch for email: {}", input.getEmail());
+            throw new PasswordMismatchException(messageSource.getMessage("password.mismatch", null, locale));
         }
+
         if (userRepository.findByEmail(input.getEmail()).isPresent()) {
-            throw new EmailAlreadyInUseException("Email already in use");
+            log.warn("Attempt to register with already used email: {}", input.getEmail());
+            throw new EmailAlreadyInUseException(messageSource.getMessage("email.in.use", null, locale));
         }
+
         Customer customer = new Customer();
         customer.setEmail(input.getEmail());
         customer.setPassword(passwordEncoder.encode(input.getPassword()));
+        customer.setPasswordUpdateDate(LocalDateTime.now());
         customer.setFirstName(input.getFirstName());
         customer.setLastName(input.getLastName());
         customer.setContact(input.getContact());
 
         Role role = roleRepository.findByAuthority("ROLE_CUSTOMER")
-                .orElseThrow(() -> new RoleNotFoundException("Role not found"));
+                .orElseThrow(() -> {
+                    log.error("Customer role not found in database.");
+                    return new RoleNotFoundException(messageSource.getMessage("role.not.found", null, locale));
+                });
+
         customer.addRole(role);
 
         if (input.getMiddleName() != null && !input.getMiddleName().isEmpty()) {
             customer.setMiddleName(input.getMiddleName());
         }
+
         userRepository.save(customer);
+        log.info("Customer saved successfully with email: {}", customer.getEmail());
 
         String activationToken = jwtService.generateActivationToken(customer.getEmail());
-
-
-        AuthToken authToken = new AuthToken(activationToken, customer.getEmail(), Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
+        AuthToken authToken = new AuthToken(
+                activationToken,
+                customer.getEmail(),
+                Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime())
+        );
         authTokenRepository.save(authToken);
+        log.info("Activation token generated and saved for email: {}", customer.getEmail());
 
         try {
             emailService.sendVerificationEmail(customer.getEmail(), "Account Verification", activationToken);
+            log.info("Verification email sent to: {}", customer.getEmail());
         } catch (MessagingException e) {
-            throw new EmailSendingException("Failed to send verification email", e);
+            log.error("Failed to send verification email to {}: {}", customer.getEmail(), e.getMessage());
+            throw new EmailSendingException(messageSource.getMessage("email.sending.failed", null, locale), e);
         }
 
-        return "User registered successfully";
+        log.info("Customer signup completed successfully for email: {}", customer.getEmail());
+        return messageSource.getMessage("user.registered.success", null, locale);
     }
 
 
     public String verifyUser(String token) {
+        log.info("Verifying user with token");
+
         String emailId = jwtService.extractUsername(token);
-
-
-
         AuthToken verificationToken = authTokenRepository.findByToken(token)
-                .orElseThrow(() -> new VerificationTokenNotFoundException("Token not found or already used."));
+                .orElseThrow(() -> {
+                    log.warn("Verification token not found or already used for email: {}", emailId);
+                    return new VerificationTokenNotFoundException(messageSource.getMessage("token.not.found.or.used", null, LocaleContextHolder.getLocale()));
+                });
 
         if (jwtService.isTokenExpired(token)) {
+            log.info("Token expired for email: {}. Generating new token.", emailId);
             authTokenRepository.delete(verificationToken);
             String newToken = jwtService.generateActivationToken(emailId);
-            AuthToken newVerificationToken = new AuthToken(newToken, emailId, Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
+            AuthToken newVerificationToken = new AuthToken(newToken, emailId,
+                    Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
             authTokenRepository.save(newVerificationToken);
+
             try {
                 emailService.sendVerificationEmail(emailId, "Account Verification", newToken);
             } catch (MessagingException e) {
-                throw new EmailSendingException("Failed to send new verification email.", e);
+                log.error("Failed to send new verification email to {}", emailId, e);
+                throw new EmailSendingException(messageSource.getMessage("email.verification.resend.failed", null, LocaleContextHolder.getLocale()), e);
             }
-            return "Token expired. A new verification email has been sent.";
-        }
-        if (!jwtService.validateToken(token, "activation", emailId)) {
-            throw new InvalidTokenException("Invalid or tampered token.");
+
+            return messageSource.getMessage("token.expired.verification.resent", null, LocaleContextHolder.getLocale());
         }
 
-        User user = userRepository.findByEmail(emailId).orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (!jwtService.validateToken(token, "activation", emailId)) {
+            log.warn("Invalid or tampered token for email: {}", emailId);
+            throw new InvalidTokenException(messageSource.getMessage("token.invalid.tampered", null, LocaleContextHolder.getLocale()));
+        }
+
+        User user = userRepository.findByEmail(emailId)
+                .orElseThrow(() -> {
+                    log.warn("User not found for email: {}", emailId);
+                    return new UserNotFoundException(messageSource.getMessage("user.not.found", null, LocaleContextHolder.getLocale()));
+                });
+
         user.setActive(true);
         userRepository.save(user);
+        log.info("User {} marked as active", emailId);
 
         authTokenRepository.delete(verificationToken);
         try {
             emailService.sendVerificationSuccessEmail(emailId, "Email Verification Successful");
         } catch (MessagingException e) {
-            throw new EmailSendingException("Failed to send verification success email.", e);
+            log.error("Failed to send verification success email to {}", emailId, e);
+            throw new EmailSendingException(messageSource.getMessage("email.verification.success.failed", null, LocaleContextHolder.getLocale()), e);
         }
-        return "Email verified successfully";
+
+        return messageSource.getMessage("email.verification.success", null, LocaleContextHolder.getLocale());
     }
+
 
 
     public String resendVerificationEmail(String emailId) throws MessagingException {
+        log.info("Resending verification email to {}", emailId);
+
         Role role = roleRepository.findByAuthority("ROLE_CUSTOMER")
-                .orElseThrow(() -> new RoleNotFoundException("Role not found"));
+                .orElseThrow(() -> {
+                    log.warn("Customer role not found");
+                    return new RoleNotFoundException(messageSource.getMessage("role.not.found", null, LocaleContextHolder.getLocale()));
+                });
+
         User user = userRepository.findByEmailAndRoles(emailId, Set.of(role))
-                .orElseThrow(() -> new UserNotFoundException("Customer not found with this email"));
+                .orElseThrow(() -> {
+                    log.warn("Customer not found with email: {}", emailId);
+                    return new UserNotFoundException(messageSource.getMessage("customer.not.found", null, LocaleContextHolder.getLocale()));
+                });
+
         if (user.isActive()) {
-            return "User is already active";
+            log.info("User {} is already active", emailId);
+            return messageSource.getMessage("user.already.active", null, LocaleContextHolder.getLocale());
         }
+
         authTokenRepository.deleteByEmail(emailId);
+        log.debug("Old tokens deleted for {}", emailId);
 
         String activationToken = jwtService.generateActivationToken(emailId);
-        AuthToken authToken = new AuthToken(activationToken, emailId, Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
+        AuthToken authToken = new AuthToken(activationToken, emailId,
+                Instant.now().plusMillis(jwtService.getActivationTokenExpirationTime()));
         authTokenRepository.save(authToken);
+        log.debug("New activation token saved for {}", emailId);
+
         try {
             emailService.sendVerificationEmail(user.getEmail(), "Account Verification", activationToken);
+            log.info("Verification email sent to {}", emailId);
         } catch (MessagingException e) {
-            throw new EmailSendingException("Failed to send verification email", e);
+            log.error("Failed to send verification email to {}", emailId, e);
+            throw new EmailSendingException(messageSource.getMessage("email.verification.failed", null, LocaleContextHolder.getLocale()), e);
         }
 
-        return "Verification email resent successfully";
+        return messageSource.getMessage("verification.email.resent.success", null, LocaleContextHolder.getLocale());
     }
+
 
     /**
      * Reset failed attempts on successful login...Generate tokens...Store refresh token in database
      */
 
-    public LoginResponseDTO login(LoginDTO loginDTO) {
+    public LoginResponseDTO login(LoginDTO loginDTO, String requiredRole) throws AccessDeniedException {
+        log.info("Attempting login for user: {}", loginDTO.getEmail());
 
         User user = userRepository.findByEmail(loginDTO.getEmail())
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + loginDTO.getEmail()));
+                .orElseThrow(() -> {
+                    log.warn("User not found with email: {}", loginDTO.getEmail());
+                    return new UserNotFoundException(messageSource.getMessage("user.not.found", new Object[]{loginDTO.getEmail()}, LocaleContextHolder.getLocale()));
+                });
 
+        boolean hasRequiredRole = user.getRoles().stream()
+                .anyMatch(role -> role.getAuthority().equals(requiredRole));
+
+        if (!hasRequiredRole) {
+            log.warn("User {} attempted to login with incorrect endpoint for role {}", loginDTO.getEmail(), requiredRole);
+            throw new AccessDeniedException(messageSource.getMessage("access.denied.message", null, LocaleContextHolder.getLocale()));
+        }
         if (!user.isActive()) {
-            throw new AccountNotActivatedException("Account is not activated. Please verify your email.");
+            log.warn("Account is not activated for user: {}", loginDTO.getEmail());
+            throw new AccountNotActivatedException(messageSource.getMessage("account.not.activated", null, LocaleContextHolder.getLocale()));
         }
 
         if (user.isLocked()) {
-            throw new AccountLockedException("Account is locked due to multiple failed attempts. Please try later.");
+            log.warn("Account is locked for user: {}", loginDTO.getEmail());
+            throw new AccountLockedException(messageSource.getMessage("account.locked", null, LocaleContextHolder.getLocale()));
         }
 
-        if (user.isExpired()) {
-            throw new PasswordExpiredException("Your password has expired. Please reset your password.");
+        if (user.getPasswordUpdateDate().plusMonths(3).isBefore(LocalDateTime.now())) {
+            user.setExpired(true);
+            userRepository.save(user);
+            log.warn("Password expired for user: {}", loginDTO.getEmail());
+            throw new PasswordExpiredException(messageSource.getMessage("password.expired", null, LocaleContextHolder.getLocale()));
         }
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
             handleFailedLoginAttempt(user);
-            throw new InvalidCredentialsException("Invalid password. You have "+ (3-user.getInvalidAttemptCount())+ " attempts left.");
+            log.warn("Invalid password attempt for user: {}", loginDTO.getEmail());
+            throw new InvalidCredentialsException(messageSource.getMessage("invalid.password", new Object[]{(3 - user.getInvalidAttemptCount())}, LocaleContextHolder.getLocale()));
         }
-
 
         if (user.getInvalidAttemptCount() > 0) {
             user.setInvalidAttemptCount(0);
             userRepository.save(user);
+            log.debug("Reset invalid attempt count for user: {}", loginDTO.getEmail());
         }
 
         String sessionId = UUID.randomUUID().toString();
         String refreshToken = jwtService.generateRefreshToken(user.getEmail());
         String accessToken = jwtService.generateAccessToken(user.getEmail(), sessionId);
 
-        //store mapping between access and refresh token
+        // Store mapping between access and refresh token
         redisTemplate.opsForValue().set("session:" + sessionId, refreshToken, jwtService.getAccessTokenExpirationTime() + 60000, TimeUnit.MILLISECONDS);
+        log.debug("Stored session mapping for sessionId: {}", sessionId);
 
         Instant refreshExpiry = Instant.now().plusMillis(jwtService.getRefreshTokenExpirationTime());
         AuthToken authToken = new AuthToken(refreshToken, user.getEmail(), refreshExpiry);
         authToken.setTokenType(TokenType.REFRESH);
         authTokenRepository.save(authToken);
+        log.debug("Refresh token saved for user: {}", loginDTO.getEmail());
 
         return new LoginResponseDTO(accessToken, refreshToken, "Bearer", user.getEmail(), user.getFirstName(), user.getLastName());
     }
+
 
     /**
      * Lock account after 3 failed attempts
      */
     private void handleFailedLoginAttempt(User user) {
         user.setInvalidAttemptCount(user.getInvalidAttemptCount() + 1);
-        if (user.getInvalidAttemptCount() >= 3) {
+        log.info("Failed login attempt #{} for user: {}", user.getInvalidAttemptCount(), user.getEmail());
 
+        if (user.getInvalidAttemptCount() >= 3) {
             user.setLocked(true);
+            log.warn("User account locked due to 3 failed login attempts: {}", user.getEmail());
+
             try {
-                emailService.sendAccountLockedEmail(user.getEmail(), "Account Locked");
+                emailService.sendAccountLockedEmail(user.getEmail(), messageSource.getMessage("account.locked.email.subject", null, LocaleContextHolder.getLocale()));
             } catch (MessagingException e) {
-                throw new EmailSendingException("Failed to send account locked notification", e);
+                log.error("Failed to send account locked notification for user: {}", user.getEmail(), e);
+                throw new EmailSendingException(messageSource.getMessage("email.send.failed.account.locked", null, LocaleContextHolder.getLocale()), e);
             }
         }
         userRepository.save(user);
+        log.debug("User locked status and invalid attempt count saved for user: {}", user.getEmail());
     }
+
 
 
     /**
@@ -216,34 +306,45 @@ public class AuthService {
      * Generate new access token
      */
     public LoginResponseDTO refreshToken(String refreshToken) {
+        log.info("Attempting to refresh token for refreshToken: {}", refreshToken);
+
         AuthToken storedToken = authTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
+                .orElseThrow(() -> {
+                    log.error("Invalid refresh token: {}", refreshToken);
+                    return new InvalidTokenException(messageSource.getMessage("invalid.refresh.token", null, LocaleContextHolder.getLocale()));
+                });
 
         if (storedToken.getTokenType() != TokenType.REFRESH) {
-            throw new InvalidTokenException("Invalid token type");
+            log.error("Invalid token type for refresh token: {}", refreshToken);
+            throw new InvalidTokenException(messageSource.getMessage("invalid.token.type", null, LocaleContextHolder.getLocale()));
         }
 
         if (storedToken.getExpiresAt().isBefore(Instant.now())) {
             authTokenRepository.delete(storedToken);
-            throw new InvalidTokenException("Refresh token expired");
+            log.warn("Refresh token expired: {}", refreshToken);
+            throw new InvalidTokenException(messageSource.getMessage("refresh.token.expired", null, LocaleContextHolder.getLocale()));
         }
 
         String email = jwtService.extractUsername(refreshToken);
 
         if (!jwtService.validateToken(refreshToken, "refresh", email)) {
-            throw new InvalidTokenException("Invalid refresh token");
+            log.error("Invalid refresh token for user: {}", email);
+            throw new InvalidTokenException(messageSource.getMessage("invalid.refresh.token", null, LocaleContextHolder.getLocale()));
         }
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found with email: {}", email);
+                    return new UserNotFoundException(messageSource.getMessage("user.not.found", new Object[]{email}, LocaleContextHolder.getLocale()));
+                });
 
         String sessionId = UUID.randomUUID().toString();
         String newAccessToken = jwtService.generateAccessToken(email, sessionId);
 
-        //store mapping between access and refresh token
+        // Store mapping between access and refresh token
         redisTemplate.opsForValue().set("session:" + sessionId, refreshToken, jwtService.getAccessTokenExpirationTime(), TimeUnit.MILLISECONDS);
 
-
+        log.info("Token refreshed successfully for user: {}", email);
         return new LoginResponseDTO(newAccessToken, refreshToken, "Bearer", email, user.getFirstName(), user.getLastName());
     }
 
@@ -252,7 +353,7 @@ public class AuthService {
 
         String email = jwtService.extractUsername(token);
         if (!jwtService.validateToken(token, "access", email)) {
-            throw new InvalidTokenException("Invalid access token");
+            throw new InvalidTokenException(messageSource.getMessage("access.token.invalid", null, LocaleContextHolder.getLocale()));
         }
 
         //blacklisting the access token
@@ -272,40 +373,50 @@ public class AuthService {
             redisTemplate.delete(sessionKey);
         }
 
-        return "Logged out";
+        return messageSource.getMessage("logout.success", null, LocaleContextHolder.getLocale());
     }
 
-
     public String sellerSignup(SellerDTO input) {
+        log.info("Starting seller signup for email: {}", input.getEmail());
 
         if (!input.getPassword().equals(input.getConfirmPassword())) {
-            throw new PasswordMismatchException("Passwords don't match");
+            log.warn("Password mismatch for email: {}", input.getEmail());
+            throw new PasswordMismatchException(messageSource.getMessage("password.mismatch", null, LocaleContextHolder.getLocale()));
         }
         if (userRepository.findByEmail(input.getEmail()).isPresent()) {
-            throw new EmailAlreadyInUseException("Email already in use");
+            log.warn("Email already in use: {}", input.getEmail());
+            throw new EmailAlreadyInUseException(messageSource.getMessage("email.in.use", new Object[]{input.getEmail()}, LocaleContextHolder.getLocale()));
         }
         if (userRepository.existsByGstin(input.getGstin())) {
-            throw new GstAlreadyInUseException("Gst already in use");
-        }
-        if (userRepository.existsByCompanyName(input.getCompanyName())) {
-            throw new DuplicateResourceException("Company already exist");
+            log.warn("GST already in use: {}", input.getGstin());
+            throw new GstAlreadyInUseException(messageSource.getMessage("gst.in.use", new Object[]{input.getGstin()}, LocaleContextHolder.getLocale()));
         }
 
+        if (userRepository.existsByCompanyName(input.getCompanyName())) {
+            log.warn("Company already exists: {}", input.getCompanyName());
+            throw new DuplicateResourceException(messageSource.getMessage("company.already.exists", new Object[]{input.getCompanyName()}, LocaleContextHolder.getLocale()));
+        }
 
         Seller seller = new Seller();
         seller.setFirstName(input.getFirstName());
         seller.setLastName(input.getLastName());
         seller.setEmail(input.getEmail());
         seller.setPassword(passwordEncoder.encode(input.getPassword()));
+        seller.setPasswordUpdateDate(LocalDateTime.now());
         seller.setCompanyName(input.getCompanyName());
         seller.setGstin(input.getGstin());
         seller.setCompanyContact(input.getCompanyContact());
+
         if (input.getMiddleName() != null && !input.getMiddleName().isEmpty()) {
             seller.setMiddleName(input.getMiddleName());
         }
 
+        // Set the role for the seller
         Role role = roleRepository.findByAuthority("ROLE_SELLER")
-                .orElseThrow(() -> new RoleNotFoundException("Role not found"));
+                .orElseThrow(() -> {
+                    log.error("Seller role not found");
+                    throw new RoleNotFoundException(messageSource.getMessage("role.not.found", null, LocaleContextHolder.getLocale()));
+                });
         seller.addRole(role);
 
         Address address = new Address();
@@ -319,25 +430,33 @@ public class AuthService {
         seller.getAddresses().add(address);
 
         userRepository.save(seller);
+        log.info("Seller saved successfully: {}", input.getEmail());
 
+        // Send success email
         try {
-            emailService.sendSuccessEmailToSeller(input.getEmail(), "Account Created");
+            emailService.sendSuccessEmailToSeller(input.getEmail(), messageSource.getMessage("email.verification.success", null, LocaleContextHolder.getLocale()));
+            log.info("Success email sent to seller: {}", input.getEmail());
         } catch (MessagingException e) {
-            throw new EmailSendingException("Failed to send success email to seller", e);
+            log.error("Failed to send success email to seller: {}", input.getEmail(), e);
+            throw new EmailSendingException(messageSource.getMessage("email.send.failed.account.locked", null, LocaleContextHolder.getLocale()), e);
         }
-        return "Seller registered successfully!";
+
+        return messageSource.getMessage("seller.signup.success", null, LocaleContextHolder.getLocale());
     }
 
 
     public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) {
 
         User user = userRepository.findByEmail(forgotPasswordDTO.getEmail())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(
+                        messageSource.getMessage("user.not.found", new Object[]{forgotPasswordDTO.getEmail()}, LocaleContextHolder.getLocale())
+                ));
 
         if (!user.isActive()) {
-            throw new UserNotActiveException("User is not active with this email.");
+            throw new UserNotActiveException(
+                    messageSource.getMessage("user.not.active", new Object[]{forgotPasswordDTO.getEmail()}, LocaleContextHolder.getLocale())
+            );
         }
-
 
         // Create a user-specific key in Redis to track their current reset token
         String userResetTokenKey = "user_reset_token:" + forgotPasswordDTO.getEmail();
@@ -349,31 +468,42 @@ public class AuthService {
             redisTemplate.delete(previousTokenKey);
         }
 
+        // Generate a new reset password token
         String token = jwtService.generateResetPasswordToken(user.getEmail());
 
         long tokenExpirationMillis = jwtService.getResetPasswordTokenExpirationTime();
         tokenBlacklistService.blacklistResetToken(token, tokenExpirationMillis);
 
-        // Store reference to the user's current reset token
+        // Store reference to the user's current reset token in Redis
         redisTemplate.opsForValue().set(userResetTokenKey, token, tokenExpirationMillis, TimeUnit.MILLISECONDS);
 
+        // Send reset password email
         try {
-            emailService.sendResetPasswordEmail(user.getEmail(), "Reset Password", token);
+            emailService.sendResetPasswordEmail(user.getEmail(),
+                    messageSource.getMessage("email.reset.subject", null, LocaleContextHolder.getLocale()),
+                    token);
         } catch (MessagingException e) {
-            throw new EmailSendingException("Failed to send password reset email", e);
+            throw new EmailSendingException(
+                    messageSource.getMessage("email.send.failed.reset", null, LocaleContextHolder.getLocale()), e
+            );
         }
-        return "Password reset link has been sent to your email address";
+
+        return messageSource.getMessage("password.reset.link.sent", null, LocaleContextHolder.getLocale());
     }
 
     public String resetPassword(ResetPasswordDTO resetPasswordDTO) {
         // Check if token exists
         if (resetPasswordDTO.getToken() == null || resetPasswordDTO.getToken().isBlank()) {
-            throw new InvalidTokenException("Reset token is missing");
+            throw new InvalidTokenException(
+                    messageSource.getMessage("reset.token.missing", null, LocaleContextHolder.getLocale())
+            );
         }
 
         // Check password match
         if (!resetPasswordDTO.getPassword().equals(resetPasswordDTO.getConfirmPassword())) {
-            throw new PasswordMismatchException("Passwords don't match");
+            throw new PasswordMismatchException(
+                    messageSource.getMessage("password.mismatch", null, LocaleContextHolder.getLocale())
+            );
         }
 
         try {
@@ -383,17 +513,23 @@ public class AuthService {
             // Check token type explicitly before other validations
             String tokenType = jwtService.getTokenType(resetPasswordDTO.getToken());
             if (!"forgot".equals(tokenType)) {
-                throw new InvalidTokenException("Invalid token type. Expected 'forgot' but got '" + tokenType + "'");
+                throw new InvalidTokenException(
+                        messageSource.getMessage("invalid.token.type", new Object[]{tokenType}, LocaleContextHolder.getLocale())
+                );
             }
 
             // Check expiration separately
             if (jwtService.isTokenExpired(resetPasswordDTO.getToken())) {
-                throw new ExpiredTokenException("Token has expired");
+                throw new ExpiredTokenException(
+                        messageSource.getMessage("token.expired", null, LocaleContextHolder.getLocale())
+                );
             }
 
             // Validate token
             if (!jwtService.validateToken(resetPasswordDTO.getToken(), "forgot", email)) {
-                throw new InvalidTokenException("Token is not valid");
+                throw new InvalidTokenException(
+                        messageSource.getMessage("token.invalid", null, LocaleContextHolder.getLocale())
+                );
             }
 
             // Check if token is in Redis store
@@ -401,12 +537,16 @@ public class AuthService {
             String storedToken = tokenBlacklistService.getStoredToken(tokenKey);
 
             if (storedToken == null) {
-                throw new InvalidTokenException("Reset token not found or already used");
+                throw new InvalidTokenException(
+                        messageSource.getMessage("token.not.found.or.used", null, LocaleContextHolder.getLocale())
+                );
             }
 
             // Get user and reset password
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+                    .orElseThrow(() -> new UserNotFoundException(
+                            messageSource.getMessage("user.not.found", new Object[]{email}, LocaleContextHolder.getLocale())
+                    ));
 
             user.setPassword(passwordEncoder.encode(resetPasswordDTO.getPassword()));
 
@@ -416,21 +556,30 @@ public class AuthService {
             }
 
             user.setPasswordUpdateDate(LocalDateTime.now());
+            user.setExpired(false);
             userRepository.save(user);
 
             // Remove used token
             redisTemplate.delete(tokenKey);
 
-            return "Password reset successfully";
+            return messageSource.getMessage("password.reset.success", null, LocaleContextHolder.getLocale());
 
         } catch (ExpiredJwtException e) {
-            throw new ExpiredTokenException("Token has expired");
+            throw new ExpiredTokenException(
+                    messageSource.getMessage("token.expired", null, LocaleContextHolder.getLocale())
+            );
         } catch (MalformedJwtException e) {
-            throw new InvalidTokenException("Malformed token");
+            throw new InvalidTokenException(
+                    messageSource.getMessage("token.malformed", null, LocaleContextHolder.getLocale())
+            );
         } catch (io.jsonwebtoken.security.SecurityException e) {
-            throw new InvalidTokenException("Invalid token");
+            throw new InvalidTokenException(
+                    messageSource.getMessage("token.invalid", null, LocaleContextHolder.getLocale())
+            );
         } catch (JwtException e) {
-            throw new InvalidTokenException("Invalid token: " + e.getMessage());
+            throw new InvalidTokenException(
+                    messageSource.getMessage("token.invalid", new Object[]{e.getMessage()}, LocaleContextHolder.getLocale())
+            );
         }
     }
 
