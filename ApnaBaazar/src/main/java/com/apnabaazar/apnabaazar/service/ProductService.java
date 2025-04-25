@@ -16,15 +16,12 @@ import com.apnabaazar.apnabaazar.model.products.ProductVariation;
 import com.apnabaazar.apnabaazar.model.users.Seller;
 import com.apnabaazar.apnabaazar.repository.CategoryMetadataFieldValuesRepository;
 import com.apnabaazar.apnabaazar.repository.ProductRepository;
-import com.apnabaazar.apnabaazar.specification.ProductSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.jmx.export.metadata.InvalidMetadataException;
 import org.springframework.stereotype.Service;
@@ -46,15 +43,18 @@ public class ProductService {
     private final MessageSource messageSource;
 
     public Product getProductById(String productId) {
+        log.debug("Fetching product with ID: {}", productId);
         Locale locale = LocaleContextHolder.getLocale();
         return productRepository.findById(productId)
-                .orElseThrow(() -> new ProductNotFoundException(
-                        messageSource.getMessage("product.not.found", new Object[]{productId}, locale)
-                ));
+                .orElseThrow(() -> {
+                    String msg = messageSource.getMessage("product.not.found", new Object[]{productId}, locale);
+                    log.warn("Product not found: {}", msg);
+                    return new ProductNotFoundException(msg);
+                });
     }
 
-
     public ProductResponseDTO getProduct(String productId, boolean skipValidations) {
+        log.debug("Getting product with ID: {}, skipValidations: {}", productId, skipValidations);
         Product product = getProductById(productId);
         if (!skipValidations){
             validateDeleteAndActiveState(product);
@@ -64,19 +64,25 @@ public class ProductService {
     }
 
     void validateDeleteState(Product product) {
+        log.debug("Validating delete state for product ID: {}", product.getId());
         if (product.isDeleted()) {
+            log.warn("Product is marked as deleted");
             throw new InvalidProductStateException(messageSource.getMessage("product.deleted", null, LocaleContextHolder.getLocale()));
         }
     }
-     void validateDeleteAndActiveState(Product product) {
+
+    void validateDeleteAndActiveState(Product product) {
+        log.debug("Validating delete and active state for product ID: {}", product.getId());
         Locale locale = LocaleContextHolder.getLocale();
         validateDeleteState(product);
         if (!product.isActive()) {
+            log.warn("Product is inactive");
             throw new InvalidProductStateException(messageSource.getMessage("product.inactive", null, locale));
         }
     }
 
     private void validateProductHasVariations(Product product) {
+        log.debug("Validating if product has variations for product ID: {}", product.getId());
         Locale locale = LocaleContextHolder.getLocale();
         if (product.getVariations() == null || product.getVariations().isEmpty())
             throw new InvalidProductStateException(messageSource.getMessage("product.variation.empty", new Object[]{product.getName()}, locale));
@@ -84,6 +90,7 @@ public class ProductService {
 
 
     private ProductResponseDTO buildProductResponseDTO(Product product) {
+        log.debug("Building ProductResponseDTO for product ID: {}", product.getId());
         ProductDTO productDTO = buildProductDTO(product);
         List<ProductVariationResponseDTO> variationDTOs = buildVariationDTOs(product);
 
@@ -94,7 +101,8 @@ public class ProductService {
                 .build();
     }
 
-     ProductDTO buildProductDTO(Product product) {
+    ProductDTO buildProductDTO(Product product) {
+        log.debug("Building ProductDTO for product ID: {}", product.getId());
         CategoryDTO categoryDTO = CategoryDTO.builder()
                 .categoryId(product.getCategory().getCategoryId())
                 .categoryName(product.getCategory().getName())
@@ -112,6 +120,7 @@ public class ProductService {
     }
 
     private List<ProductVariationResponseDTO> buildVariationDTOs(Product product) {
+        log.debug("Building variation DTOs for product ID: {}", product.getId());
         return product.getVariations().stream()
                 .map(variation -> {
                     String primaryImageUrl = getPrimaryImageUrl(variation.getPrimaryImageName());
@@ -127,22 +136,29 @@ public class ProductService {
                             .secondaryImageUrl(secondaryImageUrls)
                             .build();
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    String getPrimaryImageUrl(String primaryImageName) {
-        if (primaryImageName != null && !primaryImageName.isEmpty()) {
-            try {
-                return s3Service.getObjectUrl(primaryImageName);
-            } catch (IOException e) {
-                log.error("Error getting primary image URL: {}", e.getMessage());
-            }
-        }
-        return null;
+    List<ProductResponseDTO> buildProductResponseDTOs(Pageable pageable, Specification<Product> spec, ProductRepository productRepository) {
+        log.debug("Building product response DTOs with specification and pagination");
+        Page<Product> productsPage = productRepository.findAll(spec, pageable);
+
+        return productsPage.getContent().stream()
+                .map(product -> {
+                    ProductDTO productDTO = buildProductDTO(product);
+                    List<ProductVariationResponseDTO> variationDTOs = buildVariationDTOs(product);
+
+                    return ProductResponseDTO.builder()
+                            .sellerId(product.getSeller().getId())
+                            .product(productDTO)
+                            .productVariation(variationDTOs)
+                            .build();
+                })
+                .toList();
     }
 
-
-     List<ProductDTO> getProductDTOS(Pageable pageable, Specification<Product> spec, ProductRepository productRepository) {
+    List<ProductDTO> getProductDTOS(Pageable pageable, Specification<Product> spec, ProductRepository productRepository) {
+        log.debug("Fetching product DTOs with spec and pageable");
         Page<Product> productsPage = productRepository.findAll(spec, pageable);
 
         return productsPage.getContent().stream().map(product -> {
@@ -165,9 +181,22 @@ public class ProductService {
         }).toList();
     }
 
+    String getPrimaryImageUrl(String primaryImageName) {
+        log.debug("Fetching primary image URL for image: {}", primaryImageName);
+        if (primaryImageName != null && !primaryImageName.isEmpty()) {
+            try {
+                return s3Service.getObjectUrl(primaryImageName);
+            } catch (IOException e) {
+                log.error("Error getting primary image URL: {}", e.getMessage());
+            }
+        }
+        return null;
+    }
 
     void validateMetadata(Map<String, Object> metadata, Category category, Locale locale, Product product) {
+        log.debug("Validating metadata for product ID: {}", product.getId());
         if (metadata == null || metadata.isEmpty()) {
+            log.warn("Metadata is empty");
             throw new InvalidMetadataException(messageSource.getMessage("metadata.min.one", null, locale));
         }
 
@@ -182,6 +211,7 @@ public class ProductService {
                 Set<String> existingFields = existingVariation.get().getMetadata().keySet();
 
                 if (!existingFields.equals(newMetadataFields)) {
+                    log.warn("Metadata structure mismatch");
                     throw new InvalidMetadataException(messageSource.getMessage("metadata.structure.mismatch", null, locale));
                 }
             }
@@ -199,20 +229,27 @@ public class ProductService {
             }
             current = current.getParentCategory();
         }
+
         for (Map.Entry<String, Object> entry : metadata.entrySet()) {
             String fieldName = entry.getKey();
             String value = entry.getValue().toString();
 
-            if (!existingMetadata.containsKey(fieldName))
+            if (!existingMetadata.containsKey(fieldName)) {
+                log.warn("Invalid metadata field: {}", fieldName);
                 throw new InvalidMetadataException(messageSource.getMessage("metadata.field.invalid", new Object[]{fieldName}, locale));
-            if (!existingMetadata.get(fieldName).contains(value))
+            }
+            if (!existingMetadata.get(fieldName).contains(value)) {
+                log.warn("Invalid metadata value: {} for field: {}", value, fieldName);
                 throw new InvalidMetadataException(messageSource.getMessage("metadata.value.invalid", new Object[]{value, fieldName}, locale));
+            }
         }
     }
 
     void validateSellerOwnership(Product product, Seller seller) {
+        log.debug("Validating seller ownership for product ID: {}", product.getId());
         Locale locale = LocaleContextHolder.getLocale();
         if (product.getSeller() != seller) {
+            log.warn("Seller not associated with product: {}", product.getName());
             throw new InvalidSellerException(
                     messageSource.getMessage("seller.not.associated.with.product",
                             new Object[]{product.getName()}, locale));
@@ -220,6 +257,7 @@ public class ProductService {
     }
 
     void updateProductNameIfValid(ProductUpdateDTO dto, Product product, String productId, Seller seller, Locale locale) {
+        log.debug("Checking if product name needs update for product ID: {}", productId);
         if (dto.getName() != null && !dto.getName().isBlank() && !dto.getName().equals(product.getName())) {
             boolean isDuplicate = productRepository.findAll().stream()
                     .filter(p -> !p.getId().equals(productId))
@@ -229,6 +267,7 @@ public class ProductService {
                     .anyMatch(p -> p.getName().equals(dto.getName()));
 
             if (isDuplicate) {
+                log.warn("Duplicate product name found: {}", dto.getName());
                 throw new DuplicateProductException(messageSource.getMessage(
                         "product.duplicate.name", new Object[]{dto.getName(), product.getBrand()}, locale));
             }
@@ -237,14 +276,17 @@ public class ProductService {
     }
 
     void checkForDuplicateProduct(ProductDTO productDTO, Seller seller, Category category, Locale locale) {
+        log.debug("Checking for duplicate product: {} by {}", productDTO.getName(), seller.getId());
         boolean isDuplicate = productRepository.existsByNameAndBrandAndCategoryAndSeller(productDTO.getName(), productDTO.getBrand(), category, seller);
         if (isDuplicate) {
+            log.warn("Duplicate product found: {} - {}", productDTO.getName(), productDTO.getBrand());
             throw new DuplicateProductException(messageSource.getMessage("product.duplicate.name",
                     new Object[]{productDTO.getName(), productDTO.getBrand()}, locale));
         }
     }
 
     Product buildProductFromDTO(ProductDTO productDTO, Seller seller, Category category) {
+        log.debug("Building product entity from DTO for seller ID: {}", seller.getId());
         return Product.builder()
                 .name(productDTO.getName())
                 .brand(productDTO.getBrand())
@@ -255,8 +297,4 @@ public class ProductService {
                 .description(productDTO.getDescription())
                 .build();
     }
-
-
-
-
 }
