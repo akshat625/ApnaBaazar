@@ -21,6 +21,7 @@ public class ResetPasswordDTO {
     private String password;
 
     @NotBlank(message = "{confirm.password.required}")
+    @Size(min = 8, max = 15, message = "{password.size}")
     @Pattern(
             regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).{8,15}$",
             message = "{password.pattern}"

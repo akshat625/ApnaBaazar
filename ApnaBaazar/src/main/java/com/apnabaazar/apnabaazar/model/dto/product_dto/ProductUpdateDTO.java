@@ -15,7 +15,7 @@ public class ProductUpdateDTO {
     @Size(max = 255, message = "{product.brand.size}")
     private String brand;
 
-    @Size(max = 1000, message = "{product.description.size}")
+    @Size(max = 255, message = "{product.description.size}")
     private String description;
 
     private Boolean cancellable;

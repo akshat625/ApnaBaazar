@@ -16,7 +16,7 @@ import java.util.Set;
 @PrimaryKeyJoinColumn(name = "customer_id")
 public class Customer extends User {
 
-    @Column(name = "contact")
+    @Column(name = "contact", nullable = false)
     private String contact;
 
     @OneToMany(mappedBy = "customer")

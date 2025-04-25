@@ -20,6 +20,7 @@ public class CategoryMetadataField {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(nullable = false)
     private String name;
 
 }

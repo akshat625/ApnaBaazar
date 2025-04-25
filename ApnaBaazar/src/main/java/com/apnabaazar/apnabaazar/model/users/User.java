@@ -33,14 +33,18 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+    @Column(nullable = false)
 
     private String email;
+    @Column(nullable = false)
 
     private String firstName;
 
     private String middleName;
+    @Column(nullable = false)
 
     private String lastName;
+    @Column(nullable = false)
 
     private String password;
 
@@ -50,6 +54,7 @@ public class User {
     private boolean isActive = false;
 
     @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate

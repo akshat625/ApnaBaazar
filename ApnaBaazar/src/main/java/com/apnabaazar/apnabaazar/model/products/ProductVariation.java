@@ -7,8 +7,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,15 +24,30 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public class ProductVariation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String productVariationId;
 
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @LastModifiedBy
+    private String lastModifiedBy;
+
+    @CreatedBy
+    private String createdBy;
+
+    @Column(nullable = false)
     private Integer quantityAvailable;
 
+    @Column(nullable = false)
     private Double price;
 
     @JdbcTypeCode(SqlTypes.JSON)
@@ -37,8 +58,7 @@ public class ProductVariation {
     @ManyToOne
     private Product product;
 
-//    @OneToMany
-//for cart
+    @Column(nullable = false)
     private boolean isActive = true;
-}
 
+}

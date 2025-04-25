@@ -23,8 +23,10 @@ public class Order_Product {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(nullable = false)
     private Integer quantity;
 
+    @Column(nullable = false)
     private Long price;
 
     @ManyToOne

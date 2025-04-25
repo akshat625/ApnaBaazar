@@ -31,7 +31,7 @@ public class ProductDTO {
     private String brand;
 
     @NotBlank(message = "{product.description.not.blank}")
-    @Size(max = 1000, message = "{product.description.size}")
+    @Size(max = 255, message = "{product.description.size}")
     private String description;
 
     private boolean cancellable = false;

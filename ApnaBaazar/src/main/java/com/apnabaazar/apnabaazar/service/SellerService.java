@@ -235,7 +235,7 @@ public class SellerService {
         ProductVariation variation = productVariationService.getProductVariationById(variationId);
         Seller seller = getSellerByEmail(userPrincipal.getUsername());
         Product product = variation.getProduct();
-        productVariationService.validateSellerOwnership(seller, product, locale);
+        productService.validateSellerOwnership(product, seller);
         productService.validateDeleteAndActiveState(product);
         productVariationService.updateVariationDetails(dto, variation, product, locale);
         productVariationService.updateImages(product, variation, primaryImage, secondaryImages);

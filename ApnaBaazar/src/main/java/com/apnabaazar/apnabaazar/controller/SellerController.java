@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -98,7 +99,8 @@ public class SellerController {
     @PostMapping("/product")
     public ResponseEntity<GenericResponseDTO> addProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductDTO productDTO) throws MessagingException {
         sellerService.addProduct(userPrincipal, productDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.added.success", null, locale)));
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("product.added.success",null,locale)), HttpStatus.CREATED);
+
     }
 
     @PutMapping("/product/{productId}")
@@ -113,13 +115,13 @@ public class SellerController {
     }
 
     @PostMapping("/product/variations")
-    public ResponseEntity<String> addProductVariation(
+    public ResponseEntity<GenericResponseDTO> addProductVariation(
             @RequestPart("productData") @Valid ProductVariationDTO dto,
             @RequestPart("primaryImage") MultipartFile primaryImage,
             @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
     ) {
         sellerService.addProductVariations(dto, primaryImage, secondaryImages);
-        return ResponseEntity.ok(messageSource.getMessage("product.variation.added.success", null, locale));
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("product.variation.added.success",null,locale)), HttpStatus.CREATED);
     }
 
     @GetMapping("/product/variations/{variationId}")
@@ -182,6 +184,4 @@ public class SellerController {
         if (active != null) filters.put("active", active);
         return ResponseEntity.ok(sellerService.searchProductVariations(filters, page, size, sort, direction, userPrincipal,productId));
     }
-
-
 }
