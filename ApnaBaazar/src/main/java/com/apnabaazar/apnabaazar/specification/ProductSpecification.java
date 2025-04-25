@@ -38,5 +38,28 @@ public class ProductSpecification {
         };
     }
 
+    public static Specification<Product> withCustomerFilters(List<String> categoryIds, Map<String, String> filters) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (categoryIds != null && !categoryIds.isEmpty())
+                predicates.add(root.get("category").get("categoryId").in(categoryIds));
+
+            predicates.add(cb.isTrue(root.get("active")));
+
+            // Brand filter
+            if (filters.containsKey("brand")) {
+                predicates.add(cb.equal(root.get("brand"), filters.get("brand")));
+            }
+
+            // Product name search
+            if (filters.containsKey("name")) {
+                predicates.add(cb.like(cb.lower(root.get("name")),
+                        "%" + filters.get("name").toLowerCase() + "%"));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
 
 }
