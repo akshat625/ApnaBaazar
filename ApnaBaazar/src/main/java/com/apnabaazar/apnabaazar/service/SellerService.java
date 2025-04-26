@@ -252,7 +252,7 @@ public class SellerService {
         productService.updateProductNameIfValid(dto, product, productId, seller, locale);
 
         if (dto.getDescription() != null)
-            product.setDescription(dto.getDescription());
+            product.setDescription(dto.getDescription().trim().replaceAll("\\s{2,}", " "));
         if (Boolean.TRUE.equals(dto.getCancellable()) != product.isCancellable())
             product.setCancellable(dto.getCancellable());
         if (Boolean.TRUE.equals(dto.getReturnable()) != product.isReturnable())

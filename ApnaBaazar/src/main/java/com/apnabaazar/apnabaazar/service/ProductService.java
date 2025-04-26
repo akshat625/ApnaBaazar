@@ -109,6 +109,7 @@ public class ProductService {
                 .build();
 
         return ProductDTO.builder()
+                .productId(product.getId())
                 .name(product.getName())
                 .brand(product.getBrand())
                 .description(product.getDescription())
@@ -258,43 +259,44 @@ public class ProductService {
 
     void updateProductNameIfValid(ProductUpdateDTO dto, Product product, String productId, Seller seller, Locale locale) {
         log.debug("Checking if product name needs update for product ID: {}", productId);
-        if (dto.getName() != null && !dto.getName().isBlank() && !dto.getName().equals(product.getName())) {
+        if (dto.getName() != null && !dto.getName().isBlank() && !dto.getName().trim().replaceAll("\\s{2,}", " ").equals(product.getName())){
             boolean isDuplicate = productRepository.findAll().stream()
                     .filter(p -> !p.getId().equals(productId))
                     .filter(p -> p.getSeller().equals(seller))
                     .filter(p -> p.getCategory().equals(product.getCategory()))
                     .filter(p -> p.getBrand().equals(product.getBrand()))
-                    .anyMatch(p -> p.getName().equals(dto.getName()));
+                    .anyMatch(p -> p.getName().equals(dto.getName().trim().replaceAll("\\s{2,}", " ")));
 
             if (isDuplicate) {
-                log.warn("Duplicate product name found: {}", dto.getName());
+                log.warn("Duplicate product name found: {}", dto.getName().replaceAll("\\s{2,}", " "));
                 throw new DuplicateProductException(messageSource.getMessage(
-                        "product.duplicate.name", new Object[]{dto.getName(), product.getBrand()}, locale));
+                        "product.duplicate.name", new Object[]{dto.getName().trim().replaceAll("\\s{2,}", " "), product.getBrand().trim().replaceAll("\\s{2,}", " ")
+                        }, locale));
             }
-            product.setName(dto.getName());
+            product.setName(dto.getName().trim().replaceAll("\\s{2,}", " "));
         }
     }
 
     void checkForDuplicateProduct(ProductDTO productDTO, Seller seller, Category category, Locale locale) {
         log.debug("Checking for duplicate product: {} by {}", productDTO.getName(), seller.getId());
-        boolean isDuplicate = productRepository.existsByNameAndBrandAndCategoryAndSeller(productDTO.getName(), productDTO.getBrand(), category, seller);
+        boolean isDuplicate = productRepository.existsByNameAndBrandAndCategoryAndSeller(productDTO.getName().trim().replaceAll("\\s{2,}", " "), productDTO.getBrand().trim().replaceAll("\\s{2,}", " "), category, seller);
         if (isDuplicate) {
             log.warn("Duplicate product found: {} - {}", productDTO.getName(), productDTO.getBrand());
             throw new DuplicateProductException(messageSource.getMessage("product.duplicate.name",
-                    new Object[]{productDTO.getName(), productDTO.getBrand()}, locale));
+                    new Object[]{productDTO.getName().trim().replaceAll("\\s{2,}", " "), productDTO.getBrand().trim().replaceAll("\\s{2,}", " ")}, locale));
         }
     }
 
     Product buildProductFromDTO(ProductDTO productDTO, Seller seller, Category category) {
         log.debug("Building product entity from DTO for seller ID: {}", seller.getId());
         return Product.builder()
-                .name(productDTO.getName())
-                .brand(productDTO.getBrand())
+                .name(productDTO.getName().trim().replaceAll("\\s{2,}", " "))
+                .brand(productDTO.getBrand().trim().replaceAll("\\s{2,}", " "))
                 .category(category)
                 .seller(seller)
                 .cancellable(productDTO.isCancellable())
                 .returnable(productDTO.isReturnable())
-                .description(productDTO.getDescription())
+                .description(productDTO.getDescription().trim().replaceAll("\\s{2,}", " "))
                 .build();
     }
 }

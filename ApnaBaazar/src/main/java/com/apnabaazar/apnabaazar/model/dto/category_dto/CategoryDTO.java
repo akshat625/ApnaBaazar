@@ -17,8 +17,7 @@ public class CategoryDTO {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String parentId;
 
-    @NotBlank(message = "{category.id.required}")
-    @Size(max = 100, message = "{category.id.size}")
+
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private String categoryId;
 

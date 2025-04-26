@@ -149,7 +149,7 @@ public class AdminService {
             throw new DuplicateResourceException(messageSource.getMessage("metadata.field.already.exists", null, locale));
 
         CategoryMetadataField categoryMetadataField = new CategoryMetadataField();
-        categoryMetadataField.setName(metadataFieldDTO.getFieldName());
+        categoryMetadataField.setName(metadataFieldDTO.getFieldName().trim());
         categoryMetadataFieldRepository.save(categoryMetadataField);
     }
 

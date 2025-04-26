@@ -199,4 +199,25 @@ public class CustomerService {
         Specification<Product> spec = ProductSpecification.withCustomerFilters(childCategories, filters);
         return productService.buildProductResponseDTOs(pageable, spec, productRepository);
     }
+
+    public List<ProductResponseDTO> getSimilarProducts(String productId, int page, int size, String sort, String direction) {
+        Product product = getProductById(productId);
+
+        if (!product.isActive()) {
+            throw new ProductNotFoundException("Product is inactive and cannot be used.");
+        }
+
+        Category category = product.getCategory();
+        Specification<Product> spec = ProductSpecification.withSimilarityFilters(productId, category.getCategoryId());
+
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
+
+        return productService.buildProductResponseDTOs(pageable, spec, productRepository);
+    }
+
+    private Product getProductById(String productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found with ID: " + productId));
+    }
 }

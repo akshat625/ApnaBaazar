@@ -8,6 +8,7 @@ import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.service.AuthService;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
 import jakarta.mail.MessagingException;
@@ -36,6 +37,7 @@ public class SellerController {
     private final SellerService sellerService;
     private final S3Service s3Service;
     private final MessageSource messageSource;
+    private final AuthService authService;
     private Locale locale;
 
     @ModelAttribute
@@ -43,11 +45,10 @@ public class SellerController {
         this.locale = LocaleContextHolder.getLocale();
     }
 
-    @GetMapping("/test")
-    public String testCustomer() {
-        return messageSource.getMessage("seller.hello.message", new Object[]{}, locale);
+    @PostMapping("/logout/seller")
+    public ResponseEntity<String> logoutSeller(@RequestHeader("Authorization") String token) {
+        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
     }
-
     @GetMapping("/profile")
     public ResponseEntity<SellerProfileDTO> getSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return sellerService.getSellerProfile(userPrincipal);

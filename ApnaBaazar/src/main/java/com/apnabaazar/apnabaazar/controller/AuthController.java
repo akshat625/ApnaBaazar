@@ -87,22 +87,10 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/logout/admin")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> logoutAdmin(@RequestParam String token) {
-        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
-    }
 
-    @PostMapping("/logout/customer")
-    @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<String> logoutCustomer(@RequestParam String token) {
-        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
-    }
 
-    @PostMapping("/logout/seller")
-    @PreAuthorize("hasRole('SELLER')")
-    public ResponseEntity<String> logoutSeller(@RequestParam String token) {
-        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
-    }
+
+
+
 
 }

@@ -62,4 +62,18 @@ public class ProductSpecification {
         };
     }
 
+    public static Specification<Product> withSimilarityFilters(String productId, String categoryId) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(cb.isTrue(root.get("active")));
+
+            predicates.add(cb.equal(root.get("category").get("categoryId"), categoryId));
+
+            predicates.add(cb.notEqual(root.get("id"), productId));
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
 }

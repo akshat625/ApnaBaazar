@@ -10,6 +10,7 @@ import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
 import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.service.AdminService;
+import com.apnabaazar.apnabaazar.service.AuthService;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,15 +34,18 @@ public class AdminController {
     private final AdminService adminService;
     private final MessageSource messageSource;
     private Locale locale;
+    private final AuthService authService;
 
     @ModelAttribute
     public void initLocale() {
         this.locale = LocaleContextHolder.getLocale();
     }
 
-    @GetMapping("/test")
-    public String index(){
-        return "Admin Page";
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logoutAdmin(@RequestParam String token) {
+        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
     }
 
     @GetMapping("/profile")
@@ -157,7 +161,7 @@ public class AdminController {
             return ResponseEntity.ok(new GenericResponseDTO(true,messageSource.getMessage("category.update.success", null, locale)));
     }
 
-    @PostMapping("/category/{categoryId}")
+    @PostMapping("/category/metadata/{categoryId}")
     public ResponseEntity<GenericResponseDTO> addCategoryMetadataFieldForCategory(@PathVariable String categoryId, @Valid @RequestBody List< @Valid CategoryMetadataFieldValueDTO> categoryMetadataFieldValueDTO) {
         adminService.addCategoryMetadataFieldValuesForCategory(categoryId, categoryMetadataFieldValueDTO);
         return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("category.metadata.added.success",null,locale)), HttpStatus.CREATED);
