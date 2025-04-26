@@ -16,6 +16,7 @@ public class SellerProfileDTO {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String middleName;
+
     private String lastName;
     private boolean isActive;
     private String companyContact;

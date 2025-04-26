@@ -19,10 +19,13 @@ import java.util.Set;
 
 public class Seller extends User {
 
+    @Column(nullable = false)
     private String gstin;
 
+    @Column(nullable = false)
     private String companyContact;
 
+    @Column(nullable = false)
     private String companyName;
 
     @OneToMany(mappedBy = "seller")

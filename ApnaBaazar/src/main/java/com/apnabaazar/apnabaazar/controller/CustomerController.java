@@ -5,14 +5,20 @@ import com.apnabaazar.apnabaazar.model.dto.AddressDTO;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryFilterDetailsDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CustomerCategoryResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerProfileDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.ProductResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.service.AuthService;
 import com.apnabaazar.apnabaazar.service.CustomerService;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.AccessDeniedException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +38,7 @@ public class CustomerController {
     private final CustomerService customerService;
     private final S3Service s3Service;
     private final MessageSource messageSource;
+    private final AuthService authService;
     private Locale locale;
 
     @ModelAttribute
@@ -38,11 +46,10 @@ public class CustomerController {
         this.locale = LocaleContextHolder.getLocale();
     }
 
-    @GetMapping("/hello")
-    public String testCustomer() {
-        return messageSource.getMessage("customer.hello.message", new Object[]{},locale);
+    @PostMapping("/logout/customer")
+    public ResponseEntity<String> logoutCustomer(@RequestParam String token) {
+        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
     }
-
     @GetMapping("/profile")
     public ResponseEntity<CustomerProfileDTO> getCustomerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return customerService.getCustomerProfile(userPrincipal);
@@ -56,7 +63,7 @@ public class CustomerController {
     @PostMapping("/address")
     public ResponseEntity<GenericResponseDTO> addCustomerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody AddressDTO  addressDTO) {
         customerService.addCustomerAddress(userPrincipal,addressDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.added", null, locale)));
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("address.added",null,locale)), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/address/{addressId}")
@@ -100,4 +107,48 @@ public class CustomerController {
         customerService.updateCustomerPassword(userPrincipal, updatePasswordDTO);
         return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
     }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<CustomerCategoryResponseDTO>> getAllCategories(@RequestParam(required = false) String categoryId) {
+        return ResponseEntity.ok(customerService.getAllCategories(categoryId));
+    }
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<ProductResponseDTO> getProduct(@PathVariable String productId) {
+        return ResponseEntity.ok(customerService.getProduct(productId));
+    }
+
+    @GetMapping("/categories/filters/{categoryId}")
+    public ResponseEntity<CategoryFilterDetailsDTO> getCategoryFilters(@PathVariable String categoryId) {
+        return ResponseEntity.ok(customerService.getCategoryFilters(categoryId));
+    }
+
+    @GetMapping("/products/{categoryId}")
+    public ResponseEntity<List<ProductResponseDTO>> getAllProducts(
+            @PathVariable String categoryId,
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        return ResponseEntity.ok(customerService.getAllProducts(categoryId, filters, page, size, sort, direction, userPrincipal));
+    }
+
+    @GetMapping("/similar/{productId}")
+    public ResponseEntity<List<ProductResponseDTO>> getSimilarProducts(
+            @PathVariable String productId,
+            @RequestParam(defaultValue = "10") int max,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String order) {
+
+        int page = offset / max;
+        List<ProductResponseDTO> similarProducts = customerService.getSimilarProducts(
+                productId, page, max, sort, order);
+
+        return ResponseEntity.ok(similarProducts);
+    }
+
 }

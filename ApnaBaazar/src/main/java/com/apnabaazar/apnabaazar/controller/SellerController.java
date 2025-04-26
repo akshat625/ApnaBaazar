@@ -4,21 +4,29 @@ import com.apnabaazar.apnabaazar.config.UserPrincipal;
 import com.apnabaazar.apnabaazar.model.dto.AddressUpdateDTO;
 import com.apnabaazar.apnabaazar.model.dto.GenericResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.UpdatePasswordDTO;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.CategoryResponseDTO;
+import com.apnabaazar.apnabaazar.model.dto.product_dto.*;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerProfileDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.ProfileUpdateDTO;
+import com.apnabaazar.apnabaazar.service.AuthService;
 import com.apnabaazar.apnabaazar.service.S3Service;
 import com.apnabaazar.apnabaazar.service.SellerService;
+import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -29,6 +37,7 @@ public class SellerController {
     private final SellerService sellerService;
     private final S3Service s3Service;
     private final MessageSource messageSource;
+    private final AuthService authService;
     private Locale locale;
 
     @ModelAttribute
@@ -36,20 +45,19 @@ public class SellerController {
         this.locale = LocaleContextHolder.getLocale();
     }
 
-    @GetMapping("/test")
-    public String testCustomer(){
-        return messageSource.getMessage("seller.hello.message", new Object[]{},locale);
+    @PostMapping("/logout/seller")
+    public ResponseEntity<String> logoutSeller(@RequestHeader("Authorization") String token) {
+        return new ResponseEntity<>(authService.logout(token), HttpStatus.OK);
     }
-
     @GetMapping("/profile")
-    public ResponseEntity<SellerProfileDTO>  getSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal){
+    public ResponseEntity<SellerProfileDTO> getSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal) {
         return sellerService.getSellerProfile(userPrincipal);
     }
 
     @PostMapping("/upload/profile-image")
     public ResponseEntity<GenericResponseDTO> uploadSellerProfileImage(@RequestParam MultipartFile file, @AuthenticationPrincipal UserPrincipal userPrincipal) throws IOException {
-        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(),file);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key},locale) + key));
+        String key = s3Service.uploadProfileImage(userPrincipal.getUsername(), file);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("image.uploaded", new Object[]{key}, locale) + key));
 
 
     }
@@ -67,22 +75,114 @@ public class SellerController {
     @PutMapping("/profile")
     public ResponseEntity<GenericResponseDTO> updateSellerProfile(@AuthenticationPrincipal UserPrincipal userPrincipal, @RequestBody ProfileUpdateDTO sellerProfileUpdateDTO) {
         sellerService.updateSellerProfile(userPrincipal, sellerProfileUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null,locale)));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("profile.updated", null, locale)));
     }
 
     @PutMapping("/address/{addressId}")
-    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId, @Valid  @RequestBody AddressUpdateDTO addressUpdateDTO) {
-        sellerService.updateSellerAddress(userPrincipal,addressId,addressUpdateDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null,locale)));
+    public ResponseEntity<GenericResponseDTO> updateSellerAddress(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String addressId, @Valid @RequestBody AddressUpdateDTO addressUpdateDTO) {
+        sellerService.updateSellerAddress(userPrincipal, addressId, addressUpdateDTO);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("address.updated", null, locale)));
     }
 
     @PutMapping("/password")
     public ResponseEntity<GenericResponseDTO> updateSellerPassword(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody UpdatePasswordDTO updatePasswordDTO) {
         sellerService.updateSellerPassword(userPrincipal, updatePasswordDTO);
-        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null,locale)));
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("password.updated", null, locale)));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories() {
+        return ResponseEntity.ok(sellerService.getAllCategories());
+    }
+
+    //------------------------------------------------------------------------------------------------
+
+    @PostMapping("/product")
+    public ResponseEntity<GenericResponseDTO> addProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductDTO productDTO) throws MessagingException {
+        sellerService.addProduct(userPrincipal, productDTO);
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("product.added.success",null,locale)), HttpStatus.CREATED);
+
+    }
+
+    @PutMapping("/product/{productId}")
+    public ResponseEntity<GenericResponseDTO> updateProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @Valid @RequestBody ProductUpdateDTO productDTO, @PathVariable String productId) {
+        sellerService.updateProduct(userPrincipal, productDTO, productId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.updated.success", null, locale)));
+    }
+
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<ProductDTO> getProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId) {
+        return ResponseEntity.ok(sellerService.getProduct(userPrincipal, productId));
+    }
+
+    @PostMapping("/product/variations")
+    public ResponseEntity<GenericResponseDTO> addProductVariation(
+            @RequestPart("productData") @Valid ProductVariationDTO dto,
+            @RequestPart("primaryImage") MultipartFile primaryImage,
+            @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
+    ) {
+        sellerService.addProductVariations(dto, primaryImage, secondaryImages);
+        return new ResponseEntity<>(new GenericResponseDTO(true, messageSource.getMessage("product.variation.added.success",null,locale)), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/product/variations/{variationId}")
+    public ResponseEntity<ProductVariationDTO> getProductVariation(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String variationId) {
+        return ResponseEntity.ok(sellerService.getProductVariation(userPrincipal, variationId));
+    }
+
+    @DeleteMapping("/product/{productId}")
+    public ResponseEntity<GenericResponseDTO> deleteProduct(@AuthenticationPrincipal UserPrincipal userPrincipal, @PathVariable String productId) {
+        sellerService.deleteProduct(userPrincipal, productId);
+        return ResponseEntity.ok(new GenericResponseDTO(true, messageSource.getMessage("product.deleted.success", null, locale)));
+    }
+
+    @PutMapping("/product/variations/{variationId}")
+    public ResponseEntity<GenericResponseDTO> updateProductVariation(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String variationId,
+            @RequestPart(value = "productData", required = false) ProductVariationUpdateDTO dto,
+            @RequestPart(value = "primaryImage", required = false) MultipartFile primaryImage,
+            @RequestPart(value = "secondaryImages", required = false) List<MultipartFile> secondaryImages
+    ) {
+        sellerService.updateProductVariation(userPrincipal, variationId, dto, primaryImage, secondaryImages);
+        return ResponseEntity.ok(new GenericResponseDTO(true,
+                messageSource.getMessage("product.variation.updated.success", null, locale)));
     }
 
 
+    @GetMapping("/products/search")
+    public ResponseEntity<List<ProductDTO>> searchProducts(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        return ResponseEntity.ok(sellerService.searchProducts(filters, page, size, sort, direction, userPrincipal));
+    }
 
 
+    @GetMapping("/product/variations/all/{productId}")
+    public ResponseEntity<List<ProductVariationResponseDTO>> getAllProductVariations(
+            @RequestParam(required = false) Double priceMin,
+            @RequestParam(required = false) Double priceMax,
+            @RequestParam(required = false) Double price,
+            @RequestParam(required = false) Integer quantity,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "price") String sort,
+            @RequestParam(defaultValue = "asc") String direction,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable String productId) {
+
+        Map<String, Object> filters = new HashMap<>();
+        if (priceMin != null) filters.put("priceMin", priceMin);
+        if (priceMax != null) filters.put("priceMax", priceMax);
+        if (price != null) filters.put("price", price);
+        if (quantity != null) filters.put("quantity", quantity);
+        if (active != null) filters.put("active", active);
+        return ResponseEntity.ok(sellerService.searchProductVariations(filters, page, size, sort, direction, userPrincipal,productId));
+    }
 }

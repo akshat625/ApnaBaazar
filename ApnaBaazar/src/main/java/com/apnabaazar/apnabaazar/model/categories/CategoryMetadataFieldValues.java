@@ -8,6 +8,7 @@ import lombok.*;
 @Getter
 @Setter
 @NoArgsConstructor
+@ToString
 @AllArgsConstructor
 public class CategoryMetadataFieldValues {
 
@@ -25,7 +26,8 @@ public class CategoryMetadataFieldValues {
     @JoinColumn(name = "category_metadata_field_id")
     private CategoryMetadataField categoryMetadataField;
 
-    @Column(name = "`values`")
+    @Column(name = "`values`", nullable = false)
     private String values;
 }
+
 

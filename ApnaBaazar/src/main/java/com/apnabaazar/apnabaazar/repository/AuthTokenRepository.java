@@ -11,5 +11,5 @@ public interface AuthTokenRepository extends JpaRepository<AuthToken, UUID> {
     Optional<AuthToken> findByToken(String token);
     void deleteByEmail(String email);
 
-    void deleteByExpiresAtBefore(Instant now);
+    int deleteByExpiresAtBefore(Instant now);
 }

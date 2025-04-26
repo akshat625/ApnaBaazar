@@ -29,6 +29,7 @@ public class ProductReview {
     private Product product;
 
     @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     private String review;

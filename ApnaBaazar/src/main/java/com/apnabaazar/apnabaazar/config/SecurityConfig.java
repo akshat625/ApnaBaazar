@@ -2,6 +2,7 @@ package com.apnabaazar.apnabaazar.config;
 
 import com.apnabaazar.apnabaazar.filter.JwtFilter;
 import com.apnabaazar.apnabaazar.service.UserDetailsServiceImpl;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +17,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -39,6 +42,10 @@ public class SecurityConfig {
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(authenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
+                )
                 .csrf(AbstractHttpConfigurer::disable)
                 .build();
     }
@@ -51,6 +58,26 @@ public class SecurityConfig {
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
+    }
+
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            String message = "Access Denied: You don't have permission to access this resource";
+            response.getWriter().write(message);
+        };
+    }
+
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            String message = "Authentication Required: Please login";
+            response.getWriter().write(message);
+        };
     }
 
     @Bean

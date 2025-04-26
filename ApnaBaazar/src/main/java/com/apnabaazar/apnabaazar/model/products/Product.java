@@ -3,11 +3,12 @@ package com.apnabaazar.apnabaazar.model.products;
 import com.apnabaazar.apnabaazar.model.categories.Category;
 import com.apnabaazar.apnabaazar.model.users.User;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -22,7 +23,10 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
+@SQLDelete(sql = "UPDATE products SET is_deleted = true WHERE id = ?")
+@Where(clause = "is_deleted = false")
 public class Product {
 
     @Id
@@ -33,8 +37,10 @@ public class Product {
     @JoinColumn(name = "seller_user_id", nullable = false)
     private User seller;
 
+    @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
     private String description;
 
     @ManyToOne
@@ -48,19 +54,32 @@ public class Product {
     @OneToMany(mappedBy = "product")
     private Set<ProductReview>  productReviews = new HashSet<>();
 
-    private boolean isCancellable;
+    @Column(nullable = false)
+    private boolean cancellable = false;
 
     @CreatedDate
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
+    @Column(updatable = false)
     private LocalDateTime updatedAt;
 
-    private boolean isReturnable;
+    @LastModifiedBy
+    private String lastModifiedBy;
 
+    @CreatedBy
+    private String createdBy;
+
+    @Column(nullable = false)
+    private boolean returnable  = false;
+
+    @Column(nullable = false)
     private String brand;
 
-    private boolean isActive = true;
+    @Column(nullable = false)
+    private boolean active = false;
 
+    @Column(nullable = false)
     private boolean isDeleted = false;
 }

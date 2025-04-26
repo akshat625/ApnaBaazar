@@ -2,8 +2,8 @@ package com.apnabaazar.apnabaazar.model.users;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 
 @Entity
@@ -13,7 +13,6 @@ import org.hibernate.annotations.Where;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-//@SQLDelete(sql = "UPDATE addresses SET is_deleted = true WHERE id = ?")
 @Where(clause = "is_deleted = false")
 public class Address {
 
@@ -21,15 +20,21 @@ public class Address {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(nullable = false)
     private String city;
+    @Column(nullable = false)
 
     private String state;
+    @Column(nullable = false)
 
     private String country;
+    @Column(nullable = false)
 
     private String addressLine;
+    @Column(nullable = false)
 
     private String zipCode;
+    @Column(nullable = false)
 
     private String label;
 

@@ -1,5 +1,7 @@
 package com.apnabaazar.apnabaazar.filter;
 
+import com.apnabaazar.apnabaazar.config.UserPrincipal;
+import com.apnabaazar.apnabaazar.exceptions.AccountLockedException;
 import com.apnabaazar.apnabaazar.exceptions.InvalidTokenException;
 import com.apnabaazar.apnabaazar.service.JwtService;
 import com.apnabaazar.apnabaazar.service.TokenBlacklistService;
@@ -10,6 +12,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,28 +25,17 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
+@RequiredArgsConstructor
 @Component
 public class JwtFilter  extends OncePerRequestFilter{
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
-
-    @Autowired
-    private JwtService  jwtService;
-
-    @Autowired
-    private HandlerExceptionResolver handlerExceptionResolver;
-
-    @Autowired
-    private TokenBlacklistService  tokenBlacklistService;
+    private final UserDetailsServiceImpl userDetailsService;
+    private final JwtService  jwtService;
+    private final HandlerExceptionResolver handlerExceptionResolver;
+    private final TokenBlacklistService  tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-//        // Skip filter for refresh token endpoint
-//        if (request.getRequestURI().startsWith("/auth/refresh-token") ||
-//                request.getRequestURI().startsWith("/auth/logout")) {
-//            chain.doFilter(request, response);
-//            return;
-//        }
+
         String authorizationHeader = request.getHeader("Authorization");
         String username = null;
         String token = null;
@@ -62,8 +54,9 @@ public class JwtFilter  extends OncePerRequestFilter{
                 username = jwtService.extractUsername(token);
             }
             if (username != null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
+                UserPrincipal userDetails = (UserPrincipal) userDetailsService.loadUserByUsername(username);
+                if(userDetails.isAccountNonLocked())
+                    throw new AccountLockedException("User account is locked");
                 if (jwtService.validateToken(token, "access", username)) {
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

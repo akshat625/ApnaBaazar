@@ -1,5 +1,7 @@
 package com.apnabaazar.apnabaazar.mapper;
 
+import com.apnabaazar.apnabaazar.model.categories.CategoryMetadataField;
+import com.apnabaazar.apnabaazar.model.dto.category_dto.MetadataFieldDTO;
 import com.apnabaazar.apnabaazar.model.dto.customer_dto.CustomerResponseDTO;
 import com.apnabaazar.apnabaazar.model.dto.seller_dto.SellerResponseDTO;
 import com.apnabaazar.apnabaazar.model.users.Customer;
@@ -41,5 +43,11 @@ public class Mapper {
             return first + " " + middle + " " + last;
         }
         return first + " " + last;
+    }
+
+    public static MetadataFieldDTO fromMetadataField(CategoryMetadataField categoryMetadataField) {
+        MetadataFieldDTO dto = new MetadataFieldDTO();
+        dto.setFieldName(categoryMetadataField.getName());
+        return dto;
     }
 }

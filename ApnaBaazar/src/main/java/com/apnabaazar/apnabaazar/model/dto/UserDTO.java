@@ -1,11 +1,16 @@
 package com.apnabaazar.apnabaazar.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
+
 @Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDTO {
 
     @NotBlank(message = "{first.name.required}")
@@ -41,4 +46,5 @@ public class UserDTO {
 
     @NotBlank(message = "{confirm.password.required}")
     private String confirmPassword;
+
 }
