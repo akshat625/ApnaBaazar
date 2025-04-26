@@ -207,7 +207,7 @@ public class AdminService {
 
     public void updateCategory(CategoryUpdateDTO categoryUpdateDTO) {
         Category category = categoryService.getCategoryById(categoryUpdateDTO.getCategoryId());
-        String updatedName = categoryUpdateDTO.getCategoryName();
+        String updatedName = categoryUpdateDTO.getCategoryName().trim();
         Category parentCategory = category.getParentCategory();
         categoryService.validateUpdatedCategoryName(updatedName,category, parentCategory);
         category.setName(updatedName);
